@@ -27,9 +27,10 @@ button{border:0;border-radius:6px;padding:6px 12px;font-weight:700;background:va
 .kr{display:grid;grid-template-columns:repeat(11,1fr);gap:3px}
 .k{min-width:0;height:48px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;border-radius:6px;background:var(--key)}
 .k.del{color:#dc2626}
-.pop{position:fixed;z-index:9999;pointer-events:none;display:flex;gap:6px;padding:8px;background:var(--pop);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
-.mi{width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;border-radius:12px;background:var(--mi);color:var(--mt)}
-.mi.on{background:#3b82f6;color:#fff;transform:scale(1.08)}
+.pop{position:fixed;z-index:9999;pointer-events:none;display:grid;grid-template-columns:repeat(3,52px);gap:6px;padding:8px;background:var(--pop);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.mi{width:52px;height:52px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;border-radius:10px;background:var(--mi);color:var(--mt)}
+.mi.on{background:#3b82f6;color:#fff;transform:scale(1.1)}
+.mi.empty{visibility:hidden}
 </style>
 </head>
 <body>
@@ -40,8 +41,9 @@ button{border:0;border-radius:6px;padding:6px 12px;font-weight:700;background:va
     <div>手指座標：<span id="d-xy">0, 0</span></div>
   </div>
   <div class="card">
-    <div class="row"><span>放大字中心離所按列上緣 <b id="v-dist">40px</b></span><input id="dist" type="range" min="20" max="140" step="5" value="40"></div>
-    <div class="row" style="margin-top:6px"><span>中心判定範圍 <b id="v-zone">50%</b></span><input id="zone" type="range" min="20" max="100" step="5" value="50"></div>
+    <div class="row"><span>放大格離所按列上緣 <b id="v-gap">10px</b></span><input id="gap" type="range" min="0" max="80" step="5" value="10"></div>
+    <div class="row" style="margin-top:6px"><span>跳一格所需位移 <b id="v-step">100%</b></span><input id="step" type="range" min="50" max="150" step="10" value="100"></div>
+    <div class="row" style="margin-top:6px"><span>放大格位置</span><label><input id="ovl" type="checkbox"> 原位覆蓋在按鍵上</label></div>
   </div>
   <div class="card row">
     <div style="flex:1"><div style="color:var(--sub);margin-bottom:4px">輸出文字區：</div><div id="out"></div><div id="buf"></div><div id="cand"></div></div>
@@ -63,12 +65,13 @@ const LAYOUT=[
 const MAX_STROKES=2;
 const $=id=>document.getElementById(id);
 const strip=$('strip'), out=$('out');
-let dist=40, zone=.5, rows=[];
+let gap=10, stepK=1, overlay=false, grid=[], rowRects=[], pitchX=29, pitchY=51;
 const strokes=new Map();
 
-$('dist').oninput=e=>{dist=+e.target.value;$('v-dist').textContent=dist+'px'};
-$('zone').oninput=e=>{zone=+e.target.value/100;$('v-zone').textContent=e.target.value+'%'};
+$('gap').oninput=e=>{gap=+e.target.value;$('v-gap').textContent=gap+'px'};
+$('step').oninput=e=>{stepK=+e.target.value/100;$('v-step').textContent=e.target.value+'%'};
 $('clear').onclick=()=>{out.textContent='';buf='';render()};
+$('ovl').onchange=e=>{overlay=e.target.checked};
 const DICT={'ㄅㄚ':'八巴吧','ㄅㄚˊ':'拔','ㄅㄚˇ':'把','ㄅㄚˋ':'爸罷霸','ㄇㄚ':'媽','ㄇㄚˇ':'馬碼','ㄇㄚˋ':'罵','˙ㄇㄚ':'嗎麼','ㄋㄧˇ':'你','ㄋㄧˊ':'泥','ㄏㄠˇ':'好','ㄏㄠˋ':'號','ㄨㄛˇ':'我','ㄊㄚ':'他她它','ㄇㄣˊ':'們門','ㄕˋ':'是事市式','ㄕ':'師詩','ㄕˊ':'十時食','ㄕˇ':'使史','ㄉㄜˊ':'得德','˙ㄉㄜ':'的得','ㄉㄧˋ':'地第','ㄧ':'一','ㄧˇ':'以已','ㄧˋ':'意','ㄅㄨˋ':'不步','ㄗㄞˋ':'在再','ㄧㄡˇ':'有','ㄖㄣˊ':'人','ㄓㄨㄥ':'中','ㄍㄨㄛˊ':'國','ㄉㄚˋ':'大','ㄌㄞˊ':'來','ㄕㄤˋ':'上','ㄒㄧㄚˋ':'下','ㄍㄜˋ':'個','ㄇㄟˊ':'沒','˙ㄌㄜ':'了','ㄏㄨㄟˋ':'會','ㄑㄩˋ':'去','ㄓㄜˋ':'這','ㄋㄚˋ':'那','ㄧㄠˋ':'要','ㄎㄜˇ':'可','ㄊㄧㄢ':'天','ㄗㄨㄛˋ':'做坐','ㄔ':'吃','ㄏㄜ':'喝','ㄒㄧㄝˋ':'謝','ㄒㄧㄝˇ':'寫','ㄩㄝˋ':'月','ㄖˋ':'日','ㄋㄧㄢˊ':'年','ㄒㄧㄠˇ':'小','ㄕㄨㄟˇ':'水','ㄏㄨㄛˇ':'火','ㄕㄢ':'山','ㄏㄨㄚ':'花','ㄍㄠ':'高'};
 let buf='';
 function render(){
@@ -99,57 +102,67 @@ function init(){
   measure();
 }
 function measure(){
-  rows=[...strip.querySelectorAll('.kr')].map((rowEl,ri)=>{
-    const rr=rowEl.getBoundingClientRect();
-    return{top:rr.top,bottom:rr.bottom,keys:[...rowEl.querySelectorAll('.k:not(.del)')].map((el,i)=>{const r=el.getBoundingClientRect();return{key:LAYOUT[ri][i],c:r.left+r.width/2}})};
-  });
+  const rowEls=[...strip.querySelectorAll('.kr')];
+  grid=rowEls.map((rowEl,ri)=>[...rowEl.children].map((el,ci)=>{
+    const r=el.getBoundingClientRect();
+    return{key:LAYOUT[ri][ci]||null,cx:r.left+r.width/2};
+  }));
+  rowRects=rowEls.map(e=>{const r=e.getBoundingClientRect();return{top:r.top,bottom:r.bottom}});
+  pitchX=grid[0][1].cx-grid[0][0].cx;
+  pitchY=rowRects[1].top-rowRects[0].top;
 }
 function pickRow(y){
-  let best=rows[0],bd=1e9;
-  rows.forEach(r=>{const d=y<r.top?r.top-y:y>r.bottom?y-r.bottom:0;if(d<bd){bd=d;best=r}});
+  let best=0,bd=1e9;
+  rowRects.forEach((r,i)=>{const d=y<r.top?r.top-y:y>r.bottom?y-r.bottom:0;if(d<bd){bd=d;best=i}});
   return best;
 }
-function nearestFour(x,row){
-  const s=[...row.keys].sort((a,b)=>Math.abs(a.c-x)-Math.abs(b.c-x));
-  const near=s[0].key;
-  const four=s.slice(0,4).sort((a,b)=>a.c-b.c);
-  return{keys:four.map(k=>k.key),idx:Math.max(0,four.findIndex(k=>k.key===near))};
+function pickCol(r,x){
+  let b=0,bd=1e9;
+  grid[r].forEach((cell,i)=>{if(!cell.key)return;const d=Math.abs(x-cell.cx);if(d<bd){bd=d;b=i}});
+  return b;
 }
+// 以按下的鍵為中心，放大它周圍 3×3 的鍵
 function buildPopup(st,x,y){
-  const row=pickRow(y);
-  const {keys,idx}=nearestFour(x,row);
-  st.keys=keys;st.idx=idx;st.active=keys[idx];
+  const r=pickRow(y), c=pickCol(r,x);
+  const kcx=grid[r][c].cx, kcy=(rowRects[r].top+rowRects[r].bottom)/2;
+  Object.assign(st,{r0:r,c0:c,tiles:{},sel:'',x0:overlay?kcx:x,y0:overlay?kcy:y,sx:overlay?58:pitchX,sy:overlay?58:pitchY});
   const p=document.createElement('div');p.className='pop';
-  st.items=keys.map((k,i)=>{const d=document.createElement('div');d.className='mi'+(i===idx?' on':'');d.textContent=k;p.appendChild(d);return d});
-  document.body.appendChild(p);
-  const pr=p.getBoundingClientRect(), it=st.items[idx];
-  let left=x-(it.offsetLeft+it.offsetWidth/2);
-  left=Math.max(8,Math.min(left,innerWidth-pr.width-8));
-  const top=row.top-dist-pr.height/2;
-  p.style.left=left+'px';p.style.top=Math.max(4,top)+'px';
-  st.pop=p;st.left=left;st.top=Math.max(4,top);
-}
-function setActive(st,i){
-  st.idx=i;st.active=st.keys[i];
-  st.items.forEach((d,j)=>d.classList.toggle('on',j===i));
-}
-function update(st,x,y){
-  // 依手指水平位置，高亮最近的放大字
-  let best=0,bd=1e9;
-  st.items.forEach((d,i)=>{const cx=st.left+d.offsetLeft+d.offsetWidth/2;const dd=Math.abs(x-cx);if(dd<bd){bd=dd;best=i}});
-  if(best!==st.idx)setActive(st,best);
-  // 進入放大字中心就立刻輸入
-  const d=st.items[best];
-  const cx=st.left+d.offsetLeft+d.offsetWidth/2;
-  const cy=st.top+st.pop.offsetHeight/2;
-  if(Math.abs(x-cx)<=d.offsetWidth*zone/2&&Math.abs(y-cy)<=d.offsetHeight*zone/2){
-    addSym(st.active);
-    st.done=true;
-    st.pop.remove();st.pop=null;
+  for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+    const cell=grid[r+dr]&&grid[r+dr][c+dc];
+    const d=document.createElement('div');
+    d.className='mi'+(cell&&cell.key?'':' empty');
+    d.textContent=cell&&cell.key?cell.key:'';
+    p.appendChild(d);st.tiles[dr+','+dc]=d;
   }
+  document.body.appendChild(p);
+  const pr=p.getBoundingClientRect();
+  const cxp=overlay?kcx:x;
+  const left=Math.max(8,Math.min(cxp-pr.width/2,innerWidth-pr.width-8));
+  const top0=overlay?kcy-pr.height/2:rowRects[r].top-gap-pr.height;
+  const top=Math.max(4,Math.min(top0,innerHeight-pr.height-4));
+  p.style.left=left+'px';
+  p.style.top=top+'px';
+  if(overlay){st.x0=left+pr.width/2;st.y0=top+pr.height/2}
+  st.pop=p;
+  setSel(st,0,0);
+}
+function setSel(st,dr,dc){
+  const k=dr+','+dc;
+  Object.keys(st.tiles).forEach(t=>st.tiles[t].classList.toggle('on',t===k));
+  st.active=grid[st.r0+dr][st.c0+dc].key;
+  st.sel=k;
+}
+// 手指相對按下點的位移 → 鄰近格(上下左右各最多一格)
+function update(st,x,y){
+  const cl=v=>Math.max(-1,Math.min(1,v));
+  const dc=cl(Math.round((x-st.x0)/(st.sx*stepK)));
+  const dr=cl(Math.round((y-st.y0)/(st.sy*stepK)));
+  const cell=grid[st.r0+dr]&&grid[st.r0+dr][st.c0+dc];
+  if(!cell||!cell.key||st.sel===dr+','+dc)return;
+  setSel(st,dr,dc);
 }
 function show(){
-  const a=[...strokes.values()].map(s=>s.done?'已輸入':'候選['+s.active+']');
+  const a=[...strokes.values()].map(s=>'候選['+s.active+']');
   $('d-st').textContent=a.length?a.join(' ｜ '):'無';
 }
 
@@ -159,7 +172,7 @@ strip.addEventListener('pointerdown',e=>{
   if(strokes.size>=MAX_STROKES||strokes.has(e.pointerId))return;
   strip.setPointerCapture(e.pointerId);
   measure();
-  const st={done:false,pop:null,keys:[],items:[],idx:0,active:null,left:0,top:0};
+  const st={pop:null,active:null};
   strokes.set(e.pointerId,st);
   buildPopup(st,e.clientX,e.clientY);
   $('d-ev').textContent='pointerdown #'+e.pointerId;
@@ -170,13 +183,12 @@ strip.addEventListener('pointermove',e=>{
   const st=strokes.get(e.pointerId);if(!st)return;
   $('d-ev').textContent='pointermove #'+e.pointerId;
   $('d-xy').textContent=Math.round(e.clientX)+', '+Math.round(e.clientY);
-  if(!st.done)update(st,e.clientX,e.clientY);
+  update(st,e.clientX,e.clientY);
   show();
 });
 function finish(e,commit){
   const st=strokes.get(e.pointerId);if(!st)return;
-  // 沒上滑到中心就放開 = 一般點按，輸入目前高亮的鍵
-  if(commit&&!st.done&&st.active)addSym(st.active);
+  if(commit&&st.active)addSym(st.active);   // 放開才輸入
   if(st.pop)st.pop.remove();
   try{strip.releasePointerCapture(e.pointerId)}catch(_){}
   strokes.delete(e.pointerId);
