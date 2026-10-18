@@ -19,8 +19,11 @@ body{background:var(--bg);color:var(--tx);font-family:-apple-system,"Noto Sans T
 .row input{width:55%}
 #out{font-size:24px;font-weight:700;min-height:36px;word-break:break-all}
 button{border:0;border-radius:6px;padding:6px 12px;font-weight:700;background:var(--key);color:var(--tx)}
-.bar{display:flex;justify-content:center;padding:12px 4px 20px;border-top:1px solid var(--bd);background:var(--card)}
+.bar{display:flex;justify-content:center;padding:12px 4px 80px;border-top:1px solid var(--bd);background:var(--card)}
 #strip{display:flex;flex-direction:column;width:100%;gap:3px;padding:4px;background:var(--strip);border-radius:8px}
+#buf{font-size:18px;color:#d97706;min-height:24px;letter-spacing:2px}
+#cand{display:flex;flex-wrap:wrap;gap:6px;min-height:44px}
+#cand button{font-size:22px;min-width:44px;height:44px;border:1px solid var(--bd)}
 .kr{display:grid;grid-template-columns:repeat(11,1fr);gap:3px}
 .k{min-width:0;height:48px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;border-radius:6px;background:var(--key)}
 .k.del{color:#dc2626}
@@ -37,14 +40,14 @@ button{border:0;border-radius:6px;padding:6px 12px;font-weight:700;background:va
     <div>手指座標：<span id="d-xy">0, 0</span></div>
   </div>
   <div class="card">
-    <div class="row"><span>放大字中心離所按列上緣 <b id="v-dist">70px</b></span><input id="dist" type="range" min="40" max="140" step="5" value="70"></div>
+    <div class="row"><span>放大字中心離所按列上緣 <b id="v-dist">40px</b></span><input id="dist" type="range" min="20" max="140" step="5" value="40"></div>
     <div class="row" style="margin-top:6px"><span>中心判定範圍 <b id="v-zone">50%</b></span><input id="zone" type="range" min="20" max="100" step="5" value="50"></div>
   </div>
   <div class="card row">
-    <div style="flex:1"><div style="color:var(--sub);margin-bottom:4px">輸出文字區：</div><div id="out"></div></div>
+    <div style="flex:1"><div style="color:var(--sub);margin-bottom:4px">輸出文字區：</div><div id="out"></div><div id="buf"></div><div id="cand"></div></div>
     <button id="clear">清空</button>
   </div>
-  <div class="card" style="font-size:12px;color:var(--sub);line-height:1.6">
+  <div class="card" style="display:none">
     操作：一般點按會直接輸入手指下最接近的鍵（放開時輸入）。若想確認，按住後往上滑到放大字的中心，進入中心就立刻輸入。兩隻手可同時各做一筆。
   </div>
 </div>
@@ -60,12 +63,24 @@ const LAYOUT=[
 const MAX_STROKES=2;
 const $=id=>document.getElementById(id);
 const strip=$('strip'), out=$('out');
-let dist=70, zone=.5, rows=[];
+let dist=40, zone=.5, rows=[];
 const strokes=new Map();
 
 $('dist').oninput=e=>{dist=+e.target.value;$('v-dist').textContent=dist+'px'};
 $('zone').oninput=e=>{zone=+e.target.value/100;$('v-zone').textContent=e.target.value+'%'};
-$('clear').onclick=()=>out.textContent='';
+$('clear').onclick=()=>{out.textContent='';buf='';render()};
+const DICT={'ㄅㄚ':'八巴吧','ㄅㄚˊ':'拔','ㄅㄚˇ':'把','ㄅㄚˋ':'爸罷霸','ㄇㄚ':'媽','ㄇㄚˇ':'馬碼','ㄇㄚˋ':'罵','˙ㄇㄚ':'嗎麼','ㄋㄧˇ':'你','ㄋㄧˊ':'泥','ㄏㄠˇ':'好','ㄏㄠˋ':'號','ㄨㄛˇ':'我','ㄊㄚ':'他她它','ㄇㄣˊ':'們門','ㄕˋ':'是事市式','ㄕ':'師詩','ㄕˊ':'十時食','ㄕˇ':'使史','ㄉㄜˊ':'得德','˙ㄉㄜ':'的得','ㄉㄧˋ':'地第','ㄧ':'一','ㄧˇ':'以已','ㄧˋ':'意','ㄅㄨˋ':'不步','ㄗㄞˋ':'在再','ㄧㄡˇ':'有','ㄖㄣˊ':'人','ㄓㄨㄥ':'中','ㄍㄨㄛˊ':'國','ㄉㄚˋ':'大','ㄌㄞˊ':'來','ㄕㄤˋ':'上','ㄒㄧㄚˋ':'下','ㄍㄜˋ':'個','ㄇㄟˊ':'沒','˙ㄌㄜ':'了','ㄏㄨㄟˋ':'會','ㄑㄩˋ':'去','ㄓㄜˋ':'這','ㄋㄚˋ':'那','ㄧㄠˋ':'要','ㄎㄜˇ':'可','ㄊㄧㄢ':'天','ㄗㄨㄛˋ':'做坐','ㄔ':'吃','ㄏㄜ':'喝','ㄒㄧㄝˋ':'謝','ㄒㄧㄝˇ':'寫','ㄩㄝˋ':'月','ㄖˋ':'日','ㄋㄧㄢˊ':'年','ㄒㄧㄠˇ':'小','ㄕㄨㄟˇ':'水','ㄏㄨㄛˇ':'火','ㄕㄢ':'山','ㄏㄨㄚ':'花','ㄍㄠ':'高'};
+let buf='';
+function render(){
+  $('buf').textContent=buf?'組字中：'+buf:'';
+  const c=$('cand');c.innerHTML='';
+  if(!buf)return;
+  [...(DICT[buf]||'')].forEach(ch=>{const b=document.createElement('button');b.textContent=ch;b.onclick=()=>{out.textContent+=ch;buf='';render()};c.appendChild(b)});
+  const raw=document.createElement('button');raw.textContent='↵ 原樣';raw.style.fontSize='14px';
+  raw.onclick=()=>{out.textContent+=buf;buf='';render()};c.appendChild(raw);
+}
+function addSym(ch){buf+=ch;render()}
+function delSym(){if(buf)buf=buf.slice(0,-1);else out.textContent=out.textContent.slice(0,-1);render()}
 
 function init(){
   LAYOUT.forEach((keys,ri)=>{
@@ -75,7 +90,7 @@ function init(){
       if(i<keys.length){d.className='k';d.textContent=keys[i]}
       else if(ri===3){
         d.className='k del';d.textContent='⌫';
-        d.addEventListener('pointerdown',e=>{e.stopPropagation();out.textContent=out.textContent.slice(0,-1)});
+        d.addEventListener('pointerdown',e=>{e.stopPropagation();delSym()});
       }
       r.appendChild(d);
     }
@@ -128,7 +143,7 @@ function update(st,x,y){
   const cx=st.left+d.offsetLeft+d.offsetWidth/2;
   const cy=st.top+st.pop.offsetHeight/2;
   if(Math.abs(x-cx)<=d.offsetWidth*zone/2&&Math.abs(y-cy)<=d.offsetHeight*zone/2){
-    out.textContent+=st.active;
+    addSym(st.active);
     st.done=true;
     st.pop.remove();st.pop=null;
   }
@@ -140,6 +155,7 @@ function show(){
 
 strip.addEventListener('pointerdown',e=>{
   if(e.target.closest('.del'))return;
+  if(e.isPrimary){strokes.forEach(s=>s.pop&&s.pop.remove());strokes.clear()}
   if(strokes.size>=MAX_STROKES||strokes.has(e.pointerId))return;
   strip.setPointerCapture(e.pointerId);
   measure();
@@ -160,7 +176,7 @@ strip.addEventListener('pointermove',e=>{
 function finish(e,commit){
   const st=strokes.get(e.pointerId);if(!st)return;
   // 沒上滑到中心就放開 = 一般點按，輸入目前高亮的鍵
-  if(commit&&!st.done&&st.active)out.textContent+=st.active;
+  if(commit&&!st.done&&st.active)addSym(st.active);
   if(st.pop)st.pop.remove();
   try{strip.releasePointerCapture(e.pointerId)}catch(_){}
   strokes.delete(e.pointerId);
