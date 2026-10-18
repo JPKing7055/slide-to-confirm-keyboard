@@ -1,1125 +1,176 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>注音輸入法手感測試鍵盤 (放大選鍵版)</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    :root {
-      --ios-bg: #eceef0;
-      --ios-key-bg: #ffffff;
-      --ios-key-active: #b4b8be;
-      --ios-action-bg: #adb3bc;
-      --ios-action-active: #8f96a1;
-      --ios-key-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
-      --ios-text: #111827;
-    }
-
-    * {
-      box-sizing: border-box;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
-      touch-action: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    body {
-      background-color: #1a1c23;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang TC", "Microsoft JhengHei", sans-serif;
-      overflow: hidden;
-      margin: 0;
-      padding: 0;
-      width: 100vw;
-      height: 100vh;
-      height: 100dvh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    /* iPhone Max 430px container centered */
-    #phone-container {
-      width: 100vw;
-      max-width: 430px;
-      height: 100vh;
-      height: 100dvh;
-      background: #f7f8fa;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      overflow: hidden;
-    }
-
-    /* Key press visual feedback */
-    .key-btn {
-      transition: background-color 0.04s ease, transform 0.04s ease;
-      box-shadow: var(--ios-key-shadow);
-      border-radius: 5px;
-      touch-action: none;
-    }
-
-    .key-btn:active, .key-btn.is-pressed {
-      background-color: var(--ios-key-active) !important;
-      transform: scale(0.96);
-    }
-
-    .action-key {
-      background-color: var(--ios-action-bg);
-      color: #1f2937;
-    }
-
-    .action-key:active, .action-key.is-pressed {
-      background-color: var(--ios-action-active) !important;
-    }
-
-    /* Magnifier Callout Strip */
-    .magnifier-strip {
-      position: absolute;
-      z-index: 60;
-      pointer-events: none;
-      display: flex;
-      gap: 6px;
-      padding: 7px;
-      background: rgba(248, 250, 252, 0.96);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(203, 213, 225, 0.9);
-      border-radius: 14px;
-      box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.3), 0 4px 12px rgba(0, 0, 0, 0.08);
-      transition: transform 0.08s ease-out, opacity 0.12s ease;
-      will-change: transform, left, top;
-    }
-
-    .magnifier-strip.is-cancelled {
-      opacity: 0.35;
-      filter: grayscale(80%);
-      border-color: #ef4444;
-    }
-
-    .magnifier-key {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #ffffff;
-      color: #0f172a;
-      border-radius: 9px;
-      font-size: 24px;
-      font-weight: 600;
-      width: 48px;
-      height: 54px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.06);
-      transition: all 0.08s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-
-    .magnifier-key.is-highlighted {
-      background: #2563eb;
-      color: #ffffff;
-      transform: translateY(-4px) scale(1.1);
-      box-shadow: 0 8px 16px rgba(37, 99, 235, 0.45);
-      border: 1px solid #1d4ed8;
-    }
-
-    /* Cancel boundary guide indicator */
-    .cancel-guide-tip {
-      font-size: 10px;
-      color: #94a3b8;
-      text-align: center;
-      position: absolute;
-      top: -20px;
-      left: 0;
-      right: 0;
-      pointer-events: none;
-    }
-
-    /* Custom candidate bar scroll */
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-    .no-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-
-    /* Blinking text caret */
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-    .caret {
-      animation: blink 1s infinite;
-      display: inline-block;
-      width: 2px;
-      height: 1.15em;
-      background-color: #007aff;
-      vertical-align: -0.15em;
-      margin-left: 1px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>注音上滑確認輸入測試</title>
+<style>
+:root{--bg:#f1f5f9;--card:#fff;--tx:#0f172a;--sub:#64748b;--key:#f1f5f9;--strip:#e2e8f0;--bd:#e2e8f0;--dbg:#0f172a;--pop:rgba(30,41,59,.92);--mi:#fff;--mt:#334155;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f172a;--card:#1e293b;--tx:#f1f5f9;--sub:#94a3b8;--key:#334155;--strip:#0f172a;--bd:#334155;--dbg:#020617}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font-family:-apple-system,"Noto Sans TC",sans-serif;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.top{padding:12px;display:flex;flex-direction:column;gap:8px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:10px}
+#dbg{background:var(--dbg);color:#34d399;font:12px monospace;line-height:1.6}
+#dbg b{color:#fde047}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
+.row input{width:55%}
+#out{font-size:24px;font-weight:700;min-height:36px;word-break:break-all}
+button{border:0;border-radius:6px;padding:6px 12px;font-weight:700;background:var(--key);color:var(--tx)}
+.bar{display:flex;justify-content:center;padding:12px 4px 20px;border-top:1px solid var(--bd);background:var(--card)}
+#strip{display:flex;flex-direction:column;width:100%;gap:3px;padding:4px;background:var(--strip);border-radius:8px}
+.kr{display:grid;grid-template-columns:repeat(11,1fr);gap:3px}
+.k{min-width:0;height:48px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;border-radius:6px;background:var(--key)}
+.k.del{color:#dc2626}
+.pop{position:fixed;z-index:9999;pointer-events:none;display:flex;gap:6px;padding:8px;background:var(--pop);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.mi{width:64px;height:64px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;border-radius:12px;background:var(--mi);color:var(--mt)}
+.mi.on{background:#3b82f6;color:#fff;transform:scale(1.08)}
+</style>
 </head>
-<body class="antialiased">
-
-  <!-- Main Mobile Container -->
-  <div id="phone-container">
-    <!-- Top Bar: Diagnostics, Settings Drawer & Export -->
-    <header class="px-3 py-2 bg-white/95 backdrop-blur border-b border-gray-200 flex items-center justify-between z-20 shrink-0">
-      <div class="flex items-center gap-1.5">
-        <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
-        <span class="text-xs font-semibold text-gray-800 tracking-tight">注音手感測試</span>
-        <span id="header-mode-badge" class="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 font-medium px-1.5 py-0.5 rounded">放大模式</span>
-      </div>
-      <div class="flex items-center gap-1">
-        <button id="btn-toggle-settings" class="text-xs text-gray-600 active:text-gray-900 bg-gray-100 px-2 py-1 rounded hover:bg-gray-200 flex items-center gap-1">
-          ⚙️ 調整
-        </button>
-        <button id="btn-clear" class="text-xs text-gray-500 active:text-gray-900 px-2 py-1 rounded hover:bg-gray-100">
-          清空
-        </button>
-        <button id="btn-export" class="text-xs font-medium text-blue-600 active:text-blue-800 bg-blue-50 px-2.5 py-1 rounded border border-blue-200">
-          匯出記錄
-        </button>
-      </div>
-    </header>
-
-    <!-- Collapsible Settings Panel (A/B Test & Sliders) -->
-    <div id="settings-drawer" class="hidden bg-gray-50 border-b border-gray-300 p-3 flex-col gap-2.5 z-20 shrink-0 shadow-inner">
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-semibold text-gray-700">輸入模式 (A/B)</span>
-        <div class="flex bg-gray-200 p-0.5 rounded-md">
-          <button id="mode-normal-btn" class="text-[11px] px-2.5 py-1 rounded text-gray-600 font-medium">一般模式</button>
-          <button id="mode-magnify-btn" class="text-[11px] px-2.5 py-1 rounded bg-white text-blue-600 shadow-sm font-semibold">放大模式</button>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 gap-2 text-xs text-gray-600 pt-1 border-t border-gray-200">
-        <div class="flex items-center justify-between gap-2">
-          <label for="center-ratio-range" class="shrink-0">中心區比例：<span id="center-ratio-val" class="font-mono font-semibold text-blue-600">60%</span></label>
-          <input id="center-ratio-range" type="range" min="30" max="90" step="5" value="60" class="w-36 accent-blue-600">
-        </div>
-        <div class="flex items-center justify-between gap-2">
-          <label for="magnify-count-range" class="shrink-0">放大列鍵數：<span id="magnify-count-val" class="font-mono font-semibold text-blue-600">4 鍵</span></label>
-          <input id="magnify-count-range" type="range" min="3" max="5" step="1" value="4" class="w-36 accent-blue-600">
-        </div>
-        <div class="flex items-center justify-between gap-2">
-          <label for="cancel-distance-range" class="shrink-0">取消距離 (垂直)：<span id="cancel-distance-val" class="font-mono font-semibold text-blue-600">80px</span></label>
-          <input id="cancel-distance-range" type="range" min="40" max="150" step="5" value="80" class="w-36 accent-blue-600">
-        </div>
-      </div>
-    </div>
-
-    <!-- Read-only Text Output Area (Auto-wrap & Scrollable) -->
-    <main id="output-container" class="flex-1 min-h-0 p-3 bg-white overflow-y-auto flex flex-col justify-start items-start text-left break-words">
-      <div id="output-wrapper" class="w-full text-gray-900 text-lg sm:text-xl font-normal leading-relaxed tracking-wide select-none break-all whitespace-pre-wrap">
-        <span id="committed-text"></span><span id="composing-text" class="text-blue-600 bg-blue-50 px-1 py-0.5 rounded border border-blue-200 font-medium"></span><span class="caret"></span>
-      </div>
-      <p class="text-[11px] text-gray-400 mt-2 shrink-0 select-none border-t border-gray-100 pt-1.5 w-full">
-        提示：空白鍵＝一聲／選字；邊緣落點開啟「放大列」，左右滑動選鍵，垂直滑離超過閾值可取消。
-      </p>
-    </main>
-
-    <!-- Candidate Bar (iOS Style, sticky above keyboard) -->
-    <div id="candidate-bar" class="h-10 bg-[#e3e5e9] border-t border-b border-gray-300 flex items-center px-2 overflow-x-auto no-scrollbar gap-1 shrink-0 z-10">
-      <span class="text-xs text-gray-400 italic px-2">無候選字</span>
-    </div>
-
-    <!-- Keyboard Area (Authentic iOS Bopomofo 4 rows + function row) -->
-    <div id="keyboard-wrapper" class="bg-[#d1d5db] pt-1.5 pb-2 px-1 select-none shrink-0 relative" style="padding-bottom: max(8px, env(safe-area-inset-bottom));">
-      <!-- Container for dynamic pointer magnifiers -->
-      <div id="magnifier-layer" class="pointer-events-none absolute inset-0 z-50 overflow-visible"></div>
-
-      <div id="keyboard-grid" class="flex flex-col gap-1.5 w-full">
-        <!-- Row 1: 11 keys -->
-        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="1"></div>
-        <!-- Row 2: 10 keys -->
-        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="2"></div>
-        <!-- Row 3: 10 keys -->
-        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="3"></div>
-        <!-- Row 4: 9 keys + Backspace -->
-        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="4"></div>
-        <!-- Row 5: Action keys & Spacebar -->
-        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="5"></div>
-      </div>
-    </div>
+<body>
+<div class="top">
+  <div id="dbg" class="card">
+    <div>事件：<span id="d-ev">無</span></div>
+    <div>進行中的筆劃：<b id="d-st">無</b></div>
+    <div>手指座標：<span id="d-xy">0, 0</span></div>
   </div>
-
-  <!-- Export & Stats Modal -->
-  <div id="export-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-4 flex flex-col gap-3 max-h-[90vh]">
-      <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="font-semibold text-gray-800 text-base">輸入手感記錄與分析</h3>
-        <button id="modal-close-btn" class="text-gray-400 hover:text-gray-600 text-lg font-bold px-1">&times;</button>
-      </div>
-
-      <!-- Quick Telemetry Stats Dashboard -->
-      <div class="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
-        <div>
-          <div class="text-gray-400 text-[10px]">總輸入次數</div>
-          <div id="stat-total" class="font-bold text-gray-800 text-sm">0 次</div>
-        </div>
-        <div>
-          <div class="text-gray-400 text-[10px]">進入放大比例</div>
-          <div id="stat-magnified-ratio" class="font-bold text-blue-600 text-sm">0%</div>
-        </div>
-        <div>
-          <div class="text-gray-400 text-[10px]">滑動改選比例</div>
-          <div id="stat-switched-ratio" class="font-bold text-indigo-600 text-sm">0%</div>
-        </div>
-        <div>
-          <div class="text-gray-400 text-[10px]">取消輸入比例</div>
-          <div id="stat-cancelled-ratio" class="font-bold text-rose-500 text-sm">0%</div>
-        </div>
-      </div>
-
-      <p class="text-[11px] text-gray-500">
-        包含 timestamp、模式、落點座標、最近鍵、放大候選列、最終輸入鍵、滑動改選與取消狀態。
-      </p>
-
-      <textarea id="json-preview" readonly class="w-full flex-1 min-h-[160px] text-[11px] font-mono bg-gray-50 border border-gray-200 rounded p-2 text-gray-700 overflow-y-auto"></textarea>
-      
-      <div class="flex gap-2">
-        <button id="btn-copy-json" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-medium py-2 rounded">
-          複製 JSON
-        </button>
-        <button id="btn-download-json" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 rounded">
-          下載檔案
-        </button>
-      </div>
-    </div>
+  <div class="card">
+    <div class="row"><span>放大字中心離所按列上緣 <b id="v-dist">70px</b></span><input id="dist" type="range" min="40" max="140" step="5" value="70"></div>
+    <div class="row" style="margin-top:6px"><span>中心判定範圍 <b id="v-zone">50%</b></span><input id="zone" type="range" min="20" max="100" step="5" value="50"></div>
   </div>
-
-  <!-- Notification Toast -->
-  <div id="toast" class="pointer-events-none fixed bottom-16 left-1/2 -translate-x-1/2 bg-gray-900/90 text-white text-xs px-3 py-1.5 rounded-full opacity-0 transition-opacity duration-300 z-50">
-    已更新
+  <div class="card row">
+    <div style="flex:1"><div style="color:var(--sub);margin-bottom:4px">輸出文字區：</div><div id="out"></div></div>
+    <button id="clear">清空</button>
   </div>
+  <div class="card" style="font-size:12px;color:var(--sub);line-height:1.6">
+    操作：一般點按會直接輸入手指下最接近的鍵（放開時輸入）。若想確認，按住後往上滑到放大字的中心，進入中心就立刻輸入。兩隻手可同時各做一筆。
+  </div>
+</div>
 
-  <script>
-    /**
-     * Bopomofo Phonetic Dictionary for touch typing test
-     */
-    const PHONETIC_DICT = {
-      "ㄨㄛˇ": ["我"],
-      "ㄋㄧˇ": ["你", "妳", "擬"],
-      "ㄊㄚ": ["他", "她", "它"],
-      "ㄉㄜ˙": ["的", "得", "地"],
-      "ㄉㄜˊ": ["得", "德"],
-      "ㄕˋ": ["是", "事", "市", "世", "式", "視", "示", "試"],
-      "ㄅㄨˋ": ["不", "步", "部", "布"],
-      "ㄗㄞˋ": ["在", "再"],
-      "ㄧㄡˇ": ["有", "友", "右"],
-      "ㄧㄡˋ": ["又", "右", "幼"],
-      "ㄓㄜˋ": ["這", "蔗"],
-      "ㄓㄜ˙": ["著"],
-      "ㄋㄚˋ": ["那", "納"],
-      "ㄋㄚˇ": ["哪"],
-      "ㄧㄠˋ": ["要", "耀", "藥"],
-      "ㄏㄨㄟˋ": ["會", "彙", "繪"],
-      "ㄕㄨㄛ": ["說"],
-      "ㄎㄜˇ": ["可", "渴"],
-      "ㄎㄜˇㄧˇ": ["可以"],
-      "ㄉㄠˋ": ["到", "道", "倒"],
-      "ㄇㄣ˙": ["們"],
-      "ㄍㄜˋ": ["個", "各"],
-      "ㄏㄠˇ": ["好"],
-      "ㄌㄞˊ": ["來"],
-      "ㄐㄧㄡˋ": ["就", "救", "舊"],
-      "ㄏㄜˊ": ["和", "河", "合", "何"],
-      "ㄏㄢˋ": ["和", "漢", "汗"],
-      "ㄉㄡ": ["都", "兜"],
-      "ㄉㄡˇ": ["斗", "抖"],
-      "ㄕˊ": ["時", "十", "實", "識", "食"],
-      "ㄏㄡˋ": ["後", "候", "厚"],
-      "ㄇㄟˇ": ["美", "每"],
-      "ㄇㄟˊ": ["沒", "梅", "眉"],
-      "ㄒㄧㄤˇ": ["想", "響", "享"],
-      "ㄒㄧㄤ": ["相", "香", "鄉"],
-      "ㄎㄢˋ": ["看"],
-      "ㄓㄣ": ["真", "針"],
-      "ㄓㄣˇ": ["枕", "診"],
-      "ㄉㄚˋ": ["大"],
-      "ㄒㄧㄠˇ": ["小", "曉"],
-      "ㄉㄨㄛ": ["多"],
-      "ㄕㄠˇ": ["少"],
-      "ㄑㄩˋ": ["去", "趣"],
-      "ㄋㄥˊ": ["能"],
-      "ㄉㄨㄟˋ": ["對"],
-      "ㄍㄟˇ": ["給"],
-      "ㄋㄧㄢˊ": ["年"],
-      "ㄖㄣˊ": ["人"],
-      "ㄖㄣˇ": ["忍"],
-      "ㄖㄣˋ": ["任", "認"],
-      "ㄗˋ": ["自", "字"],
-      "ㄐㄧˇ": ["己", "幾"],
-      "ㄌㄧˇ": ["裡", "理", "禮", "李"],
-      "ㄓㄨㄥ": ["中", "忠", "鐘"],
-      "ㄒㄧㄣ": ["心", "新", "辛"],
-      "ㄕㄥ": ["生", "聲", "升"],
-      "ㄎㄞ": ["開"],
-      "ㄍㄨㄢ": ["關", "官", "觀"],
-      "ㄐㄧㄚ": ["家", "加", "佳"],
-      "ㄉㄧㄢˋ": ["電", "店", "點"],
-      "ㄉㄧㄢˇ": ["點"],
-      "ㄏㄨㄚˋ": ["話", "畫", "化"],
-      "ㄨㄣˊ": ["文", "聞"],
-      "ㄨㄣˋ": ["問"],
-      "ㄗㄨㄛˋ": ["做", "作", "坐", "座"],
-      "ㄇㄚ˙": ["嗎"],
-      "ㄇㄚ": ["媽"],
-      "ㄇㄚˇ": ["馬", "碼"],
-      "ㄅㄚ": ["八", "巴"],
-      "ㄅㄚˋ": ["爸", "霸"],
-      "ㄅㄚ˙": ["吧"],
-      "ㄋㄜ˙": ["呢"],
-      "ㄌㄜ˙": ["了"],
-      "ㄌㄧㄠˇ": ["了", "瞭"],
-      "ㄓ": ["知", "之", "支", "隻"],
-      "ㄕ": ["詩", "師", "失", "施"],
-      "ㄖˋ": ["日"],
-      "ㄩㄝˋ": ["月", "越", "樂"],
-      "ㄇㄧㄥˊ": ["明", "名"],
-      "ㄅㄞˊ": ["白"],
-      "ㄊㄧㄢ": ["天"],
-      "ㄙㄢ": ["三"],
-      "ㄙˋ": ["四"],
-      "ㄨˇ": ["五", "午"],
-      "ㄌㄧㄡˋ": ["六"],
-      "ㄑㄧ": ["七", "期"],
-      "ㄐㄧㄡˇ": ["九", "酒", "久"],
-      "ㄅㄞˇ": ["百"],
-      "ㄑㄧㄢ": ["千", "簽"],
-      "ㄨㄢˋ": ["萬"],
-      "ㄗㄨㄟˋ": ["最", "醉"],
-      "ㄍㄥˋ": ["更"],
-      "ㄈㄤ": ["方"],
-      "ㄈㄚˇ": ["法"],
-      "ㄉㄧㄥˋ": ["定"],
-      "ㄑㄧㄥˊ": ["情", "晴"],
-      "ㄍㄢˇ": ["感", "敢", "趕"],
-      "ㄐㄧㄝ": ["接", "街", "階"],
-      "ㄐㄧㄝˇ": ["姐", "解"],
-      "ㄕㄡˇ": ["手", "首", "守"],
-      "ㄐㄧㄢˋ": ["鍵", "見", "件", "建"],
-      "ㄆㄢˊ": ["盤"],
-      "ㄘㄜˋ": ["測", "側"],
-      "ㄕˋ": ["試", "是", "事", "市"],
-      "ㄉㄚˇ": ["打"],
-      "ㄗˋ": ["字"],
-      "ㄎㄨㄞˋ": ["快", "塊", "筷"],
-      "ㄇㄢˋ": ["慢"],
-      "ㄓㄨˋ": ["注", "住", "助"],
-      "ㄧㄣ": ["音", "因", "陰"],
-      "ㄕㄨ": ["書", "輸", "舒"],
-      "ㄖㄨˋ": ["入"],
-      "ㄐㄧ": ["機", "基", "積", "雞"],
-      "ㄅㄛˊ": ["博", "伯", "薄"],
-      "ㄎㄜ": ["科", "棵"],
-      "ㄐㄧˋ": ["技", "計", "記", "季"],
-      "ㄏㄨㄤˊ": ["黃"],
-      "ㄌㄩˋ": ["綠", "律", "慮"],
-      "ㄌㄢˊ": ["藍", "籃"],
-      "ㄏㄟ": ["黑"],
-      "ㄤ": ["骯"],
-      "ㄡ": ["歐"],
-      "ㄟ": ["誒"],
-      "ㄚ": ["啊"],
-      "ㄜ": ["阿", "鵝"],
-      "ㄦˇ": ["耳", "爾"],
-      "ㄦˊ": ["兒", "而"],
-      "ㄦˋ": ["二"]
-    };
+<div class="bar"><div id="strip"></div></div>
 
-    const BOPOMOFO_SINGLE_MAP = {
-      'ㄅ': ['八', '吧', '把', '爸', '不', '包', '杯'],
-      'ㄆ': ['朋', '旁', '跑', '片', '票', '平'],
-      'ㄇ': ['嗎', '買', '賣', '門', '面', '明', '沒'],
-      'ㄈ': ['發', '放', '分', '風', '方', '服'],
-      'ㄉ': ['的', '得', '到', '大', '等', '帶', '點'],
-      'ㄊ': ['他', '她', '聽', '同', '頭', '條', '天'],
-      'ㄋ': ['你', '妳', '能', '那', '年', '難'],
-      'ㄌ': ['了', '來', '老', '冷', '裡', '路', '兩'],
-      'ㄍ': ['個', '過', '高', '給', '看', '跟', '關'],
-      'ㄎ': ['可', '看', '開', '快', '客', '苦'],
-      'ㄏ': ['好', '很', '和', '後', '會', '話', '紅'],
-      'ㄐ': ['就', '家', '見', '叫', '進', '今', '幾'],
-      'ㄑ': ['去', '請', '錢', '前', '起', '球'],
-      'ㄒ': ['想', '小', '寫', '謝', '些', '下', '先'],
-      'ㄓ': ['這', '著', '中', '知', '真', '主', '正'],
-      'ㄔ': ['吃', '出', '車', '長', '常', '成'],
-      'ㄕ': ['是', '說', '手', '上', '生', '水', '時'],
-      'ㄖ': ['人', '日', '熱', '認', '讓'],
-      'ㄗ': ['在', '再', '走', '早', '做', '字', '自'],
-      'ㄘ': ['從', '次', '錯', '草'],
-      'ㄙ': ['三', '思', '四', '死', '訴'],
-      'ㄧ': ['一', '以', '已', '意', '因', '要', '有'],
-      'ㄨ': ['五', '我', '無', '文', '物', '問', '玩'],
-      'ㄩ': ['雨', '魚', '月', '遠', '雲', '用'],
-      'ㄚ': ['啊', '阿'],
-      'ㄛ': ['喔', '哦'],
-      'ㄜ': ['餓', '額'],
-      'ㄝ': ['耶', '夜'],
-      'ㄞ': ['愛', '矮'],
-      'ㄟ': ['誒'],
-      'ㄠ': ['傲', '襖'],
-      'ㄡ': ['偶', '歐'],
-      'ㄢ': ['安', '按'],
-      'ㄣ': ['恩'],
-      'ㄤ': ['昂'],
-      'ㄥ': ['鞥'],
-      'ㄦ': ['兒', '二', '耳']
-    };
+<script>
+const LAYOUT=[
+ ['ㄅ','ㄉ','ˇ','ˋ','ㄓ','ˊ','˙','ㄚ','ㄞ','ㄢ','ㄦ'],
+ ['ㄆ','ㄊ','ㄍ','ㄐ','ㄔ','ㄗ','ㄧ','ㄛ','ㄟ','ㄣ'],
+ ['ㄇ','ㄋ','ㄎ','ㄑ','ㄕ','ㄘ','ㄨ','ㄜ','ㄠ','ㄤ'],
+ ['ㄈ','ㄌ','ㄏ','ㄒ','ㄖ','ㄙ','ㄩ','ㄝ','ㄡ','ㄥ']];
+const MAX_STROKES=2;
+const $=id=>document.getElementById(id);
+const strip=$('strip'), out=$('out');
+let dist=70, zone=.5, rows=[];
+const strokes=new Map();
 
-    const TONES = new Set(['ˊ', 'ˇ', 'ˋ', '˙']);
-    const ALL_BOPOMOFO = new Set([
-      'ㄅ','ㄆ','ㄇ','ㄈ','ㄉ','ㄊ','ㄋ','ㄌ','ㄍ','ㄎ','ㄏ',
-      'ㄐ','ㄑ','ㄒ','ㄓ','ㄔ','ㄕ','ㄖ','ㄗ','ㄘ','ㄙ',
-      'ㄧ','ㄨ','ㄩ','ㄚ','ㄛ','ㄜ','ㄝ','ㄞ','ㄟ','ㄠ','ㄡ','ㄢ','ㄣ','ㄤ','ㄥ','ㄦ',
-      'ˊ','ˇ','ˋ','˙'
-    ]);
+$('dist').oninput=e=>{dist=+e.target.value;$('v-dist').textContent=dist+'px'};
+$('zone').oninput=e=>{zone=+e.target.value/100;$('v-zone').textContent=e.target.value+'%'};
+$('clear').onclick=()=>out.textContent='';
 
-    // Keyboard Layout structure
-    const KEYBOARD_ROWS = [
-      ['ㄅ', 'ㄉ', 'ˇ', 'ˋ', 'ㄓ', 'ˊ', '˙', 'ㄚ', 'ㄞ', 'ㄢ', 'ㄦ'],
-      ['ㄆ', 'ㄊ', 'ㄍ', 'ㄐ', 'ㄔ', 'ㄒ', 'ㄧ', 'ㄛ', 'ㄟ', 'ㄣ'],
-      ['ㄇ', 'ㄋ', 'ㄎ', 'ㄑ', 'ㄕ', 'ㄘ', 'ㄨ', 'ㄜ', 'ㄠ', 'ㄤ'],
-      ['ㄈ', 'ㄌ', 'ㄏ', 'ㄒ', 'ㄖ', 'ㄙ', 'ㄩ', 'ㄝ', 'ㄡ', 'ㄥ', 'BACKSPACE'],
-      ['123', 'EMOJI', 'SPACE', 'RETURN']
-    ];
-
-    // State Variables
-    let composingBuffer = "";
-    let committedText = "";
-
-    // Config options
-    const config = {
-      mode: 'magnify', // 'normal' | 'magnify'
-      centerRatio: 0.60,
-      magnifyCount: 4,
-      cancelDistance: 80
-    };
-
-    // Telemetry and Tracking
-    const telemetryLogs = [];
-    // Map: pointerId -> Tracking Session Object
-    const pointerSessions = new Map();
-
-    // Cache of keyboard key geometries for high-performance distance query
-    let keyMetrics = [];
-
-    function buildKeyboard() {
-      const grid = document.getElementById('keyboard-grid');
-      
-      KEYBOARD_ROWS.forEach((rowKeys, rowIndex) => {
-        const rowElement = grid.querySelector(`[data-row="${rowIndex + 1}"]`);
-        rowElement.innerHTML = '';
-
-        rowKeys.forEach((key) => {
-          const btn = document.createElement('div');
-          btn.dataset.key = key;
-
-          if (key === 'BACKSPACE') {
-            btn.className = 'key-btn action-key flex-[1.4] flex items-center justify-center text-sm font-semibold cursor-pointer';
-            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M216,48H88a15.87,15.87,0,0,0-12.78,6.38L21.84,122.1a8,8,0,0,0,0,11.8l53.38,67.72A15.87,15.87,0,0,0,88,208H216a16,16,0,0,0,16-16V64A16,16,0,0,0,216,48Zm0,144H88L37.76,128,88,64H216ZM147.2,128l26.4-26.4a8,8,0,0,0-11.32-11.32L135.88,116.69l-26.4-26.41a8,8,0,0,0-11.32,11.32L124.56,128l-26.4,26.4a8,8,0,0,0,11.32,11.32l26.41-26.41,26.4,26.41a8,8,0,0,0,11.32-11.32Z"></path></svg>`;
-          } else if (key === 'SPACE') {
-            btn.className = 'key-btn bg-white flex-[4.5] flex items-center justify-center text-xs text-gray-500 font-medium cursor-pointer';
-            btn.textContent = '空白';
-          } else if (key === '123') {
-            btn.className = 'key-btn action-key flex-[1.5] flex items-center justify-center text-xs font-semibold cursor-pointer';
-            btn.textContent = '123';
-          } else if (key === 'EMOJI') {
-            btn.className = 'key-btn action-key flex-[1.2] flex items-center justify-center text-lg cursor-pointer';
-            btn.textContent = '🌐';
-          } else if (key === 'RETURN') {
-            btn.className = 'key-btn action-key flex-[2] flex items-center justify-center text-xs font-semibold text-gray-800 cursor-pointer';
-            btn.textContent = '換行';
-          } else {
-            btn.className = 'key-btn bg-white flex-1 flex items-center justify-center text-[17px] font-normal text-gray-900 cursor-pointer';
-            btn.textContent = key;
-          }
-
-          rowElement.appendChild(btn);
-        });
-      });
-
-      refreshKeyMetrics();
-    }
-
-    function refreshKeyMetrics() {
-      const containerRect = document.getElementById('phone-container').getBoundingClientRect();
-      const keys = document.querySelectorAll('.key-btn');
-      keyMetrics = Array.from(keys).map((el) => {
-        const rect = el.getBoundingClientRect();
-        return {
-          key: el.dataset.key,
-          element: el,
-          rect: rect,
-          // Relative to phone container
-          left: rect.left - containerRect.left,
-          top: rect.top - containerRect.top,
-          width: rect.width,
-          height: rect.height,
-          centerX: rect.left - containerRect.left + rect.width / 2,
-          centerY: rect.top - containerRect.top + rect.height / 2,
-          clientCenterX: rect.left + rect.width / 2,
-          clientCenterY: rect.top + rect.height / 2
-        };
-      });
-    }
-
-    /**
-     * Find nearest keys and test if point is inside center zone
-     */
-    function findNearestKeys(clientX, clientY, count = 4) {
-      const scored = keyMetrics.map(item => {
-        const dx = clientX - item.clientCenterX;
-        const dy = clientY - item.clientCenterY;
-        const distSq = dx * dx + dy * dy;
-        return { ...item, distSq };
-      });
-
-      scored.sort((a, b) => a.distSq - b.distSq);
-      const nearest = scored[0];
-
-      // Check if touch is within center rectangle
-      const rect = nearest.rect;
-      const ratio = config.centerRatio;
-      const insetX = (rect.width * (1 - ratio)) / 2;
-      const insetY = (rect.height * (1 - ratio)) / 2;
-
-      const isInsideCenter = (
-        clientX >= rect.left + insetX &&
-        clientX <= rect.right - insetX &&
-        clientY >= rect.top + insetY &&
-        clientY <= rect.bottom - insetY
-      );
-
-      // Candidates for magnification strip: nearest N keys, arranged from left to right as in original layout
-      const selectedSubset = scored.slice(0, count);
-      // Sort candidates from left to right visually
-      selectedSubset.sort((a, b) => {
-        if (Math.abs(a.centerY - b.centerY) > 20) {
-          // Different rows: preserve top-down or relative left-to-right
-          return a.centerX - b.centerX;
-        }
-        return a.centerX - b.centerX;
-      });
-
-      return {
-        nearest,
-        isInsideCenter,
-        candidates: selectedSubset
-      };
-    }
-
-    function createMagnifierElement(pointerId, candidates, initialKey, startClientX, startClientY) {
-      const layer = document.getElementById('magnifier-layer');
-      const containerRect = document.getElementById('phone-container').getBoundingClientRect();
-
-      const strip = document.createElement('div');
-      strip.className = 'magnifier-strip';
-      strip.id = `magnifier-${pointerId}`;
-
-      // Cancel distance warning label
-      const cancelTip = document.createElement('div');
-      cancelTip.className = 'cancel-guide-tip';
-      cancelTip.textContent = '滑離過遠可取消';
-      strip.appendChild(cancelTip);
-
-      candidates.forEach(item => {
-        const keyBox = document.createElement('div');
-        keyBox.className = 'magnifier-key';
-        keyBox.dataset.key = item.key;
-        if (item.key === 'BACKSPACE') {
-          keyBox.innerHTML = '⌫';
-        } else if (item.key === 'SPACE') {
-          keyBox.textContent = '空白';
-          keyBox.style.fontSize = '14px';
-        } else {
-          keyBox.textContent = item.key;
-        }
-        if (item.key === initialKey) {
-          keyBox.classList.add('is-highlighted');
-        }
-        strip.appendChild(keyBox);
-      });
-
-      layer.appendChild(strip);
-      return strip;
-    }
-
-    function positionMagnifierStrip(pointerId, clientX, clientY, candidates, stripEl, isCancelled) {
-      const containerRect = document.getElementById('phone-container').getBoundingClientRect();
-      const stripWidth = stripEl.offsetWidth || (candidates.length * 54 + (candidates.length - 1) * 6 + 14);
-      const stripHeight = stripEl.offsetHeight || 68;
-
-      // Ensure strip is positioned comfortably ABOVE the finger (at least 60px above contact point)
-      let targetLeft = (clientX - containerRect.left) - (stripWidth / 2);
-      let targetTop = (clientY - containerRect.top) - stripHeight - 28;
-
-      // Keep inside container horizontally
-      const minLeft = 8;
-      const maxLeft = containerRect.width - stripWidth - 8;
-      if (targetLeft < minLeft) targetLeft = minLeft;
-      if (targetLeft > maxLeft) targetLeft = maxLeft;
-
-      // Prevent going above screen
-      if (targetTop < 8) targetTop = 8;
-
-      // Multi-touch overlap deconfliction (if two pointers are magnified simultaneously)
-      pointerSessions.forEach((session, otherId) => {
-        if (otherId !== pointerId && session.isMagnified && session.stripElement) {
-          const otherLeft = session.stripElement.offsetLeft;
-          const otherTop = session.stripElement.offsetTop;
-          // If bounding boxes overlap significantly, offset vertically or horizontally
-          const overlapX = Math.abs(targetLeft - otherLeft) < (stripWidth - 10);
-          const overlapY = Math.abs(targetTop - otherTop) < (stripHeight - 8);
-          if (overlapX && overlapY) {
-            // Offset current one higher
-            targetTop = Math.max(8, otherTop - stripHeight - 8);
-          }
-        }
-      });
-
-      stripEl.style.left = `${targetLeft}px`;
-      stripEl.style.top = `${targetTop}px`;
-
-      if (isCancelled) {
-        stripEl.classList.add('is-cancelled');
-      } else {
-        stripEl.classList.remove('is-cancelled');
+function init(){
+  LAYOUT.forEach((keys,ri)=>{
+    const r=document.createElement('div');r.className='kr';
+    for(let i=0;i<11;i++){
+      const d=document.createElement('div');
+      if(i<keys.length){d.className='k';d.textContent=keys[i]}
+      else if(ri===3){
+        d.className='k del';d.textContent='⌫';
+        d.addEventListener('pointerdown',e=>{e.stopPropagation();out.textContent=out.textContent.slice(0,-1)});
       }
+      r.appendChild(d);
     }
-
-    function updateMagnifierHighlight(stripEl, candidates, currentClientX) {
-      if (!stripEl) return candidates[0]?.key;
-      const keyBoxes = Array.from(stripEl.querySelectorAll('.magnifier-key'));
-      if (!keyBoxes.length) return candidates[0]?.key;
-
-      // Map current horizontal position to the candidate keys
-      let closestBox = keyBoxes[0];
-      let minDelta = Infinity;
-
-      keyBoxes.forEach(box => {
-        const boxRect = box.getBoundingClientRect();
-        const boxCenterX = boxRect.left + boxRect.width / 2;
-        const delta = Math.abs(currentClientX - boxCenterX);
-        if (delta < minDelta) {
-          minDelta = delta;
-          closestBox = box;
-        }
-      });
-
-      keyBoxes.forEach(b => b.classList.remove('is-highlighted'));
-      closestBox.classList.add('is-highlighted');
-
-      return closestBox.dataset.key;
-    }
-
-    function setupPointerHandling() {
-      const keyboardGrid = document.getElementById('keyboard-grid');
-
-      const preventDefaults = (e) => {
-        e.preventDefault();
-      };
-
-      keyboardGrid.addEventListener('touchstart', preventDefaults, { passive: false });
-      keyboardGrid.addEventListener('touchmove', preventDefaults, { passive: false });
-      keyboardGrid.addEventListener('touchend', preventDefaults, { passive: false });
-
-      // Pointer Down
-      keyboardGrid.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        refreshKeyMetrics();
-
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const now = Date.now();
-
-        const { nearest, isInsideCenter, candidates } = findNearestKeys(startX, startY, config.magnifyCount);
-        const shouldMagnify = (config.mode === 'magnify') && !isInsideCenter;
-
-        // Visual feedback on the physical key under touch
-        if (nearest && nearest.element) {
-          nearest.element.classList.add('is-pressed');
-        }
-
-        let stripEl = null;
-        if (shouldMagnify) {
-          stripEl = createMagnifierElement(e.pointerId, candidates, nearest.key, startX, startY);
-          positionMagnifierStrip(e.pointerId, startX, startY, candidates, stripEl, false);
-          updateMagnifierHighlight(stripEl, candidates, startX);
-        }
-
-        const session = {
-          pointerId: e.pointerId,
-          startTime: now,
-          startX: startX,
-          startY: startY,
-          currentX: startX,
-          currentY: startY,
-          nearestKey: nearest.key,
-          selectedKey: nearest.key,
-          isInsideCenter: isInsideCenter,
-          isMagnified: shouldMagnify,
-          stripElement: stripEl,
-          candidates: candidates.map(c => c.key),
-          candidatesFull: candidates,
-          hasSwiped: false,
-          isCancelled: false,
-          nearestElement: nearest.element
-        };
-
-        pointerSessions.set(e.pointerId, session);
-      }, { passive: false });
-
-      // Pointer Move
-      window.addEventListener('pointermove', (e) => {
-        if (!pointerSessions.has(e.pointerId)) return;
-        const session = pointerSessions.get(e.pointerId);
-
-        session.currentX = e.clientX;
-        session.currentY = e.clientY;
-
-        const moveDist = Math.hypot(session.currentX - session.startX, session.currentY - session.startY);
-        if (moveDist > 6) {
-          session.hasSwiped = true;
-        }
-
-        // Check vertical cancellation distance
-        const deltaY = Math.abs(session.currentY - session.startY);
-        session.isCancelled = (deltaY > config.cancelDistance);
-
-        if (session.isMagnified && session.stripElement) {
-          positionMagnifierStrip(e.pointerId, session.currentX, session.currentY, session.candidatesFull, session.stripElement, session.isCancelled);
-          if (!session.isCancelled) {
-            const chosenKey = updateMagnifierHighlight(session.stripElement, session.candidatesFull, session.currentX);
-            session.selectedKey = chosenKey;
-          }
-        }
-      }, { passive: false });
-
-      // Pointer Up / Cancel
-      const handlePointerEnd = (e, wasCancelledEvent = false) => {
-        if (!pointerSessions.has(e.pointerId)) return;
-        const session = pointerSessions.get(e.pointerId);
-        const duration = Date.now() - session.startTime;
-
-        if (session.nearestElement) {
-          session.nearestElement.classList.remove('is-pressed');
-        }
-
-        let finalKey = null;
-        const isCancelled = wasCancelledEvent || session.isCancelled;
-
-        if (!isCancelled) {
-          if (!session.isMagnified) {
-            // Normal center-hit mode: release confirms the tapped key
-            finalKey = session.nearestKey;
-          } else {
-            // Magnified mode: release confirms currently highlighted key
-            finalKey = session.selectedKey;
-          }
-        }
-
-        // Clean up visual magnifier
-        if (session.stripElement && session.stripElement.parentNode) {
-          session.stripElement.remove();
-        }
-
-        // Record telemetry log
-        const logRecord = {
-          id: telemetryLogs.length + 1,
-          timestamp: session.startTime,
-          timeISO: new Date(session.startTime).toISOString(),
-          mode: config.mode,
-          durationMs: duration,
-          startPoint: { x: Math.round(session.startX), y: Math.round(session.startY) },
-          nearestKey: session.nearestKey,
-          isInsideCenter: session.isInsideCenter,
-          enteredMagnify: session.isMagnified,
-          magnifyList: session.isMagnified ? session.candidates : [],
-          finalKey: finalKey,
-          hasSwiped: session.hasSwiped,
-          switchedKey: session.isMagnified && !isCancelled && (finalKey !== session.nearestKey),
-          isCancelled: isCancelled
-        };
-
-        telemetryLogs.push(logRecord);
-
-        // Execute key input if not cancelled
-        if (finalKey) {
-          handleKeyPress(finalKey);
-        }
-
-        pointerSessions.delete(e.pointerId);
-      };
-
-      window.addEventListener('pointerup', (e) => handlePointerEnd(e, false));
-      window.addEventListener('pointercancel', (e) => handlePointerEnd(e, true));
-    }
-
-    function handleKeyPress(key) {
-      if (ALL_BOPOMOFO.has(key)) {
-        composingBuffer += key;
-      } else if (key === 'SPACE') {
-        if (composingBuffer.length > 0) {
-          const candidates = getCandidateList(composingBuffer);
-          selectCandidate(candidates[0]);
-        } else {
-          committedText += ' ';
-        }
-      } else if (key === 'BACKSPACE') {
-        if (composingBuffer.length > 0) {
-          composingBuffer = composingBuffer.slice(0, -1);
-        } else if (committedText.length > 0) {
-          committedText = committedText.slice(0, -1);
-        }
-      } else if (key === 'RETURN') {
-        if (composingBuffer.length > 0) {
-          committedText += composingBuffer;
-          composingBuffer = "";
-        } else {
-          committedText += "\n";
-        }
-      } else if (key === '123') {
-        showToast('切換符號模式 (原型測試)');
-      } else if (key === 'EMOJI') {
-        showToast('表情符號 (原型測試)');
-      }
-
-      updateDisplay();
-    }
-
-    function getCandidateList(buffer) {
-      if (!buffer) return [];
-      let matches = [];
-
-      if (PHONETIC_DICT[buffer]) {
-        matches = [...PHONETIC_DICT[buffer]];
-      }
-
-      // Check tone 1
-      const hasTone = Array.from(buffer).some(c => TONES.has(c));
-      if (!hasTone && PHONETIC_DICT[buffer] && !matches.includes(PHONETIC_DICT[buffer][0])) {
-        matches.push(...PHONETIC_DICT[buffer]);
-      }
-
-      // Fallback single character
-      const firstChar = buffer[0];
-      if (BOPOMOFO_SINGLE_MAP[firstChar]) {
-        BOPOMOFO_SINGLE_MAP[firstChar].forEach(word => {
-          if (!matches.includes(word)) matches.push(word);
-        });
-      }
-
-      if (matches.length === 0) {
-        matches.push(buffer);
-      }
-
-      return matches;
-    }
-
-    function renderCandidates() {
-      const candidateBar = document.getElementById('candidate-bar');
-      candidateBar.innerHTML = '';
-
-      if (!composingBuffer) {
-        candidateBar.innerHTML = '<span class="text-xs text-gray-400 italic px-2">無候選字</span>';
-        return;
-      }
-
-      const matches = getCandidateList(composingBuffer);
-
-      matches.slice(0, 14).forEach((word) => {
-        const item = document.createElement('button');
-        item.className = 'candidate-item px-3 py-1 bg-white hover:bg-gray-100 active:bg-gray-200 rounded text-[16px] text-gray-900 font-medium shrink-0 shadow-sm border border-gray-200 transition';
-        item.textContent = word;
-        
-        item.addEventListener('pointerdown', (e) => {
-          e.preventDefault();
-          selectCandidate(word);
-        });
-
-        candidateBar.appendChild(item);
-      });
-    }
-
-    function selectCandidate(word) {
-      committedText += word;
-      composingBuffer = "";
-      updateDisplay();
-    }
-
-    function updateDisplay() {
-      document.getElementById('committed-text').textContent = committedText;
-      document.getElementById('composing-text').textContent = composingBuffer;
-      renderCandidates();
-      
-      // Auto scroll output area to bottom
-      const outputMain = document.getElementById('output-container');
-      if (outputMain) {
-        outputMain.scrollTop = outputMain.scrollHeight;
-      }
-    }
-
-    function setupControls() {
-      // Clear
-      document.getElementById('btn-clear').addEventListener('click', () => {
-        committedText = "";
-        composingBuffer = "";
-        updateDisplay();
-      });
-
-      // Settings Drawer toggle
-      const settingsDrawer = document.getElementById('settings-drawer');
-      document.getElementById('btn-toggle-settings').addEventListener('click', () => {
-        settingsDrawer.classList.toggle('hidden');
-        setTimeout(refreshKeyMetrics, 100);
-      });
-
-      // Mode switch buttons (A/B testing)
-      const normalBtn = document.getElementById('mode-normal-btn');
-      const magnifyBtn = document.getElementById('mode-magnify-btn');
-      const modeBadge = document.getElementById('header-mode-badge');
-
-      function setMode(mode) {
-        config.mode = mode;
-        if (mode === 'magnify') {
-          magnifyBtn.className = 'text-[11px] px-2.5 py-1 rounded bg-white text-blue-600 shadow-sm font-semibold';
-          normalBtn.className = 'text-[11px] px-2.5 py-1 rounded text-gray-600 font-medium';
-          modeBadge.textContent = '放大模式';
-          modeBadge.className = 'text-[10px] bg-blue-50 text-blue-700 border border-blue-200 font-medium px-1.5 py-0.5 rounded';
-        } else {
-          normalBtn.className = 'text-[11px] px-2.5 py-1 rounded bg-white text-blue-600 shadow-sm font-semibold';
-          magnifyBtn.className = 'text-[11px] px-2.5 py-1 rounded text-gray-600 font-medium';
-          modeBadge.textContent = '一般模式';
-          modeBadge.className = 'text-[10px] bg-gray-100 text-gray-600 border border-gray-200 font-medium px-1.5 py-0.5 rounded';
-        }
-      }
-
-      normalBtn.addEventListener('click', () => setMode('normal'));
-      magnifyBtn.addEventListener('click', () => setMode('magnify'));
-
-      // Sliders
-      const centerRange = document.getElementById('center-ratio-range');
-      const centerVal = document.getElementById('center-ratio-val');
-      centerRange.addEventListener('input', (e) => {
-        const val = parseInt(e.target.value, 10);
-        config.centerRatio = val / 100;
-        centerVal.textContent = `${val}%`;
-      });
-
-      const countRange = document.getElementById('magnify-count-range');
-      const countVal = document.getElementById('magnify-count-val');
-      countRange.addEventListener('input', (e) => {
-        config.magnifyCount = parseInt(e.target.value, 10);
-        countVal.textContent = `${config.magnifyCount} 鍵`;
-      });
-
-      const cancelRange = document.getElementById('cancel-distance-range');
-      const cancelVal = document.getElementById('cancel-distance-val');
-      cancelRange.addEventListener('input', (e) => {
-        config.cancelDistance = parseInt(e.target.value, 10);
-        cancelVal.textContent = `${config.cancelDistance}px`;
-      });
-
-      // Export & Analytics Modal
-      const modal = document.getElementById('export-modal');
-      const jsonPreview = document.getElementById('json-preview');
-
-      document.getElementById('btn-export').addEventListener('click', () => {
-        // Compute Statistics
-        const total = telemetryLogs.length;
-        const magnifiedCount = telemetryLogs.filter(l => l.enteredMagnify).length;
-        const switchedCount = telemetryLogs.filter(l => l.switchedKey).length;
-        const cancelledCount = telemetryLogs.filter(l => l.isCancelled).length;
-
-        const magnifiedRatio = total ? Math.round((magnifiedCount / total) * 100) : 0;
-        const switchedRatio = total ? Math.round((switchedCount / total) * 100) : 0;
-        const cancelledRatio = total ? Math.round((cancelledCount / total) * 100) : 0;
-
-        document.getElementById('stat-total').textContent = `${total} 次`;
-        document.getElementById('stat-magnified-ratio').textContent = `${magnifiedRatio}% (${magnifiedCount})`;
-        document.getElementById('stat-switched-ratio').textContent = `${switchedRatio}% (${switchedCount})`;
-        document.getElementById('stat-cancelled-ratio').textContent = `${cancelledRatio}% (${cancelledCount})`;
-
-        const payload = {
-          summary: {
-            totalTouches: total,
-            magnifiedRatio: `${magnifiedRatio}%`,
-            switchedRatio: `${switchedRatio}%`,
-            cancelledRatio: `${cancelledRatio}%`,
-            activeConfig: { ...config }
-          },
-          device: {
-            userAgent: navigator.userAgent,
-            width: window.innerWidth,
-            height: window.innerHeight,
-            devicePixelRatio: window.devicePixelRatio
-          },
-          logs: telemetryLogs
-        };
-
-        jsonPreview.value = JSON.stringify(payload, null, 2);
-        modal.classList.remove('hidden');
-      });
-
-      document.getElementById('modal-close-btn').addEventListener('click', () => {
-        modal.classList.add('hidden');
-      });
-
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) modal.classList.add('hidden');
-      });
-
-      // Copy JSON
-      document.getElementById('btn-copy-json').addEventListener('click', () => {
-        jsonPreview.select();
-        try {
-          document.execCommand('copy');
-          showToast('JSON 已複製到剪貼簿！');
-        } catch (err) {
-          showToast('複製失敗，請手動複製');
-        }
-      });
-
-      // Download JSON
-      document.getElementById('btn-download-json').addEventListener('click', () => {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(jsonPreview.value);
-        const downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", `bopomofo_telemetry_${Date.now()}.json`);
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-        showToast('已開始下載 JSON 記錄檔');
-      });
-
-      window.addEventListener('resize', () => {
-        refreshKeyMetrics();
-      });
-      window.addEventListener('orientationchange', () => {
-        setTimeout(refreshKeyMetrics, 200);
-      });
-    }
-
-    function showToast(msg) {
-      const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.classList.remove('opacity-0');
-      toast.classList.add('opacity-100');
-      setTimeout(() => {
-        toast.classList.remove('opacity-100');
-        toast.classList.add('opacity-0');
-      }, 1800);
-    }
-
-    window.onload = function() {
-      buildKeyboard();
-      setupPointerHandling();
-      setupControls();
-      updateDisplay();
-    };
-  </script>
+    strip.appendChild(r);
+  });
+  measure();
+}
+function measure(){
+  rows=[...strip.querySelectorAll('.kr')].map((rowEl,ri)=>{
+    const rr=rowEl.getBoundingClientRect();
+    return{top:rr.top,bottom:rr.bottom,keys:[...rowEl.querySelectorAll('.k:not(.del)')].map((el,i)=>{const r=el.getBoundingClientRect();return{key:LAYOUT[ri][i],c:r.left+r.width/2}})};
+  });
+}
+function pickRow(y){
+  let best=rows[0],bd=1e9;
+  rows.forEach(r=>{const d=y<r.top?r.top-y:y>r.bottom?y-r.bottom:0;if(d<bd){bd=d;best=r}});
+  return best;
+}
+function nearestFour(x,row){
+  const s=[...row.keys].sort((a,b)=>Math.abs(a.c-x)-Math.abs(b.c-x));
+  const near=s[0].key;
+  const four=s.slice(0,4).sort((a,b)=>a.c-b.c);
+  return{keys:four.map(k=>k.key),idx:Math.max(0,four.findIndex(k=>k.key===near))};
+}
+function buildPopup(st,x,y){
+  const row=pickRow(y);
+  const {keys,idx}=nearestFour(x,row);
+  st.keys=keys;st.idx=idx;st.active=keys[idx];
+  const p=document.createElement('div');p.className='pop';
+  st.items=keys.map((k,i)=>{const d=document.createElement('div');d.className='mi'+(i===idx?' on':'');d.textContent=k;p.appendChild(d);return d});
+  document.body.appendChild(p);
+  const pr=p.getBoundingClientRect(), it=st.items[idx];
+  let left=x-(it.offsetLeft+it.offsetWidth/2);
+  left=Math.max(8,Math.min(left,innerWidth-pr.width-8));
+  const top=row.top-dist-pr.height/2;
+  p.style.left=left+'px';p.style.top=Math.max(4,top)+'px';
+  st.pop=p;st.left=left;st.top=Math.max(4,top);
+}
+function setActive(st,i){
+  st.idx=i;st.active=st.keys[i];
+  st.items.forEach((d,j)=>d.classList.toggle('on',j===i));
+}
+function update(st,x,y){
+  // 依手指水平位置，高亮最近的放大字
+  let best=0,bd=1e9;
+  st.items.forEach((d,i)=>{const cx=st.left+d.offsetLeft+d.offsetWidth/2;const dd=Math.abs(x-cx);if(dd<bd){bd=dd;best=i}});
+  if(best!==st.idx)setActive(st,best);
+  // 進入放大字中心就立刻輸入
+  const d=st.items[best];
+  const cx=st.left+d.offsetLeft+d.offsetWidth/2;
+  const cy=st.top+st.pop.offsetHeight/2;
+  if(Math.abs(x-cx)<=d.offsetWidth*zone/2&&Math.abs(y-cy)<=d.offsetHeight*zone/2){
+    out.textContent+=st.active;
+    st.done=true;
+    st.pop.remove();st.pop=null;
+  }
+}
+function show(){
+  const a=[...strokes.values()].map(s=>s.done?'已輸入':'候選['+s.active+']');
+  $('d-st').textContent=a.length?a.join(' ｜ '):'無';
+}
+
+strip.addEventListener('pointerdown',e=>{
+  if(e.target.closest('.del'))return;
+  if(strokes.size>=MAX_STROKES||strokes.has(e.pointerId))return;
+  strip.setPointerCapture(e.pointerId);
+  measure();
+  const st={done:false,pop:null,keys:[],items:[],idx:0,active:null,left:0,top:0};
+  strokes.set(e.pointerId,st);
+  buildPopup(st,e.clientX,e.clientY);
+  $('d-ev').textContent='pointerdown #'+e.pointerId;
+  $('d-xy').textContent=Math.round(e.clientX)+', '+Math.round(e.clientY);
+  show();
+});
+strip.addEventListener('pointermove',e=>{
+  const st=strokes.get(e.pointerId);if(!st)return;
+  $('d-ev').textContent='pointermove #'+e.pointerId;
+  $('d-xy').textContent=Math.round(e.clientX)+', '+Math.round(e.clientY);
+  if(!st.done)update(st,e.clientX,e.clientY);
+  show();
+});
+function finish(e,commit){
+  const st=strokes.get(e.pointerId);if(!st)return;
+  // 沒上滑到中心就放開 = 一般點按，輸入目前高亮的鍵
+  if(commit&&!st.done&&st.active)out.textContent+=st.active;
+  if(st.pop)st.pop.remove();
+  try{strip.releasePointerCapture(e.pointerId)}catch(_){}
+  strokes.delete(e.pointerId);
+  $('d-ev').textContent=(commit?'pointerup':'pointercancel')+' #'+e.pointerId;
+  show();
+}
+strip.addEventListener('pointerup',e=>finish(e,true));
+strip.addEventListener('pointercancel',e=>finish(e,false));
+addEventListener('resize',measure);
+init();
+</script>
 </body>
 </html>
