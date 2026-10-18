@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>注音輸入法手感測試鍵盤</title>
+  <title>注音輸入法手感測試鍵盤 (放大選鍵版)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     :root {
@@ -75,6 +75,65 @@
       background-color: var(--ios-action-active) !important;
     }
 
+    /* Magnifier Callout Strip */
+    .magnifier-strip {
+      position: absolute;
+      z-index: 60;
+      pointer-events: none;
+      display: flex;
+      gap: 6px;
+      padding: 7px;
+      background: rgba(248, 250, 252, 0.96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(203, 213, 225, 0.9);
+      border-radius: 14px;
+      box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.3), 0 4px 12px rgba(0, 0, 0, 0.08);
+      transition: transform 0.08s ease-out, opacity 0.12s ease;
+      will-change: transform, left, top;
+    }
+
+    .magnifier-strip.is-cancelled {
+      opacity: 0.35;
+      filter: grayscale(80%);
+      border-color: #ef4444;
+    }
+
+    .magnifier-key {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 9px;
+      font-size: 24px;
+      font-weight: 600;
+      width: 48px;
+      height: 54px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.06);
+      transition: all 0.08s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .magnifier-key.is-highlighted {
+      background: #2563eb;
+      color: #ffffff;
+      transform: translateY(-4px) scale(1.1);
+      box-shadow: 0 8px 16px rgba(37, 99, 235, 0.45);
+      border: 1px solid #1d4ed8;
+    }
+
+    /* Cancel boundary guide indicator */
+    .cancel-guide-tip {
+      font-size: 10px;
+      color: #94a3b8;
+      text-align: center;
+      position: absolute;
+      top: -20px;
+      left: 0;
+      right: 0;
+      pointer-events: none;
+    }
+
     /* Custom candidate bar scroll */
     .no-scrollbar::-webkit-scrollbar {
       display: none;
@@ -104,14 +163,17 @@
 
   <!-- Main Mobile Container -->
   <div id="phone-container">
-    <!-- Top Bar: Diagnostics & Export -->
-    <header class="px-3 py-2 bg-white/90 backdrop-blur border-b border-gray-200 flex items-center justify-between z-10 shrink-0">
+    <!-- Top Bar: Diagnostics, Settings Drawer & Export -->
+    <header class="px-3 py-2 bg-white/95 backdrop-blur border-b border-gray-200 flex items-center justify-between z-20 shrink-0">
       <div class="flex items-center gap-1.5">
-        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span class="text-xs font-semibold text-gray-700 tracking-tight">注音手感測試</span>
-        <span id="log-count" class="text-[10px] bg-gray-100 text-gray-500 font-mono px-1.5 py-0.5 rounded">0 點擊</span>
+        <span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+        <span class="text-xs font-semibold text-gray-800 tracking-tight">注音手感測試</span>
+        <span id="header-mode-badge" class="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 font-medium px-1.5 py-0.5 rounded">放大模式</span>
       </div>
       <div class="flex items-center gap-1">
+        <button id="btn-toggle-settings" class="text-xs text-gray-600 active:text-gray-900 bg-gray-100 px-2 py-1 rounded hover:bg-gray-200 flex items-center gap-1">
+          ⚙️ 調整
+        </button>
         <button id="btn-clear" class="text-xs text-gray-500 active:text-gray-900 px-2 py-1 rounded hover:bg-gray-100">
           清空
         </button>
@@ -121,13 +183,39 @@
       </div>
     </header>
 
-    <!-- Read-only Text Output Area (Anchored to top, flex-col start) -->
+    <!-- Collapsible Settings Panel (A/B Test & Sliders) -->
+    <div id="settings-drawer" class="hidden bg-gray-50 border-b border-gray-300 p-3 flex-col gap-2.5 z-20 shrink-0 shadow-inner">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-semibold text-gray-700">輸入模式 (A/B)</span>
+        <div class="flex bg-gray-200 p-0.5 rounded-md">
+          <button id="mode-normal-btn" class="text-[11px] px-2.5 py-1 rounded text-gray-600 font-medium">一般模式</button>
+          <button id="mode-magnify-btn" class="text-[11px] px-2.5 py-1 rounded bg-white text-blue-600 shadow-sm font-semibold">放大模式</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-2 text-xs text-gray-600 pt-1 border-t border-gray-200">
+        <div class="flex items-center justify-between gap-2">
+          <label for="center-ratio-range" class="shrink-0">中心區比例：<span id="center-ratio-val" class="font-mono font-semibold text-blue-600">60%</span></label>
+          <input id="center-ratio-range" type="range" min="30" max="90" step="5" value="60" class="w-36 accent-blue-600">
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <label for="magnify-count-range" class="shrink-0">放大列鍵數：<span id="magnify-count-val" class="font-mono font-semibold text-blue-600">4 鍵</span></label>
+          <input id="magnify-count-range" type="range" min="3" max="5" step="1" value="4" class="w-36 accent-blue-600">
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <label for="cancel-distance-range" class="shrink-0">取消距離 (垂直)：<span id="cancel-distance-val" class="font-mono font-semibold text-blue-600">80px</span></label>
+          <input id="cancel-distance-range" type="range" min="40" max="150" step="5" value="80" class="w-36 accent-blue-600">
+        </div>
+      </div>
+    </div>
+
+    <!-- Read-only Text Output Area (Auto-wrap & Scrollable) -->
     <main id="output-container" class="flex-1 min-h-0 p-3 bg-white overflow-y-auto flex flex-col justify-start items-start text-left break-words">
-      <div id="output-wrapper" class="w-full text-gray-900 text-lg sm:text-xl font-normal leading-relaxed tracking-wide select-none">
+      <div id="output-wrapper" class="w-full text-gray-900 text-lg sm:text-xl font-normal leading-relaxed tracking-wide select-none break-all whitespace-pre-wrap">
         <span id="committed-text"></span><span id="composing-text" class="text-blue-600 bg-blue-50 px-1 py-0.5 rounded border border-blue-200 font-medium"></span><span class="caret"></span>
       </div>
       <p class="text-[11px] text-gray-400 mt-2 shrink-0 select-none border-t border-gray-100 pt-1.5 w-full">
-        提示：空白鍵＝一聲／選字；⌫＝退格；依序輸入聲母、介音、韻母、聲調（˙ˊˇˋ）。
+        提示：空白鍵＝一聲／選字；邊緣落點開啟「放大列」，左右滑動選鍵，垂直滑離超過閾值可取消。
       </p>
     </main>
 
@@ -137,47 +225,59 @@
     </div>
 
     <!-- Keyboard Area (Authentic iOS Bopomofo 4 rows + function row) -->
-    <div id="keyboard-wrapper" class="bg-[#d1d5db] pt-1.5 pb-2 px-1 select-none shrink-0" style="padding-bottom: max(8px, env(safe-area-inset-bottom));">
+    <div id="keyboard-wrapper" class="bg-[#d1d5db] pt-1.5 pb-2 px-1 select-none shrink-0 relative" style="padding-bottom: max(8px, env(safe-area-inset-bottom));">
+      <!-- Container for dynamic pointer magnifiers -->
+      <div id="magnifier-layer" class="pointer-events-none absolute inset-0 z-50 overflow-visible"></div>
+
       <div id="keyboard-grid" class="flex flex-col gap-1.5 w-full">
         <!-- Row 1: 11 keys -->
-        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="1">
-          <!-- ㄅ ㄉ ˇ ˋ ㄓ ˊ ˙ ㄚ ㄞ ㄢ ㄦ -->
-        </div>
-
+        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="1"></div>
         <!-- Row 2: 10 keys -->
-        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="2">
-          <!-- ㄆ ㄊ ㄍ ㄐ ㄔ ㄒ ㄧ ㄛ ㄟ ㄣ -->
-        </div>
-
+        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="2"></div>
         <!-- Row 3: 10 keys -->
-        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="3">
-          <!-- ㄇ ㄋ ㄎ ㄑ ㄕ ㄘ ㄨ ㄜ ㄠ ㄤ -->
-        </div>
-
+        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="3"></div>
         <!-- Row 4: 9 keys + Backspace -->
-        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="4">
-          <!-- ㄈ ㄌ ㄏ ㄒ ㄖ ㄙ ㄩ ㄝ ㄡ ㄥ + ⌫ -->
-        </div>
-
+        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="4"></div>
         <!-- Row 5: Action keys & Spacebar -->
-        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="5">
-          <!-- 123 | 表情符號 | 空白鍵 | 換行 -->
-        </div>
+        <div class="flex gap-1 w-full justify-between h-[42px]" data-row="5"></div>
       </div>
     </div>
   </div>
 
-  <!-- Export Modal -->
+  <!-- Export & Stats Modal -->
   <div id="export-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-4 flex flex-col gap-3 max-h-[85vh]">
+    <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-4 flex flex-col gap-3 max-h-[90vh]">
       <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="font-semibold text-gray-800 text-base">觸控按鍵記錄 (Telemetry JSON)</h3>
+        <h3 class="font-semibold text-gray-800 text-base">輸入手感記錄與分析</h3>
         <button id="modal-close-btn" class="text-gray-400 hover:text-gray-600 text-lg font-bold px-1">&times;</button>
       </div>
-      <p class="text-xs text-gray-500">
-        已記錄每一筆按下的 timestamp、pointerId、螢幕絕對座標 (clientX, clientY) 與命中按鍵。
+
+      <!-- Quick Telemetry Stats Dashboard -->
+      <div class="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs">
+        <div>
+          <div class="text-gray-400 text-[10px]">總輸入次數</div>
+          <div id="stat-total" class="font-bold text-gray-800 text-sm">0 次</div>
+        </div>
+        <div>
+          <div class="text-gray-400 text-[10px]">進入放大比例</div>
+          <div id="stat-magnified-ratio" class="font-bold text-blue-600 text-sm">0%</div>
+        </div>
+        <div>
+          <div class="text-gray-400 text-[10px]">滑動改選比例</div>
+          <div id="stat-switched-ratio" class="font-bold text-indigo-600 text-sm">0%</div>
+        </div>
+        <div>
+          <div class="text-gray-400 text-[10px]">取消輸入比例</div>
+          <div id="stat-cancelled-ratio" class="font-bold text-rose-500 text-sm">0%</div>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-gray-500">
+        包含 timestamp、模式、落點座標、最近鍵、放大候選列、最終輸入鍵、滑動改選與取消狀態。
       </p>
-      <textarea id="json-preview" readonly class="w-full flex-1 min-h-[180px] text-[11px] font-mono bg-gray-50 border border-gray-200 rounded p-2 text-gray-700 overflow-y-auto"></textarea>
+
+      <textarea id="json-preview" readonly class="w-full flex-1 min-h-[160px] text-[11px] font-mono bg-gray-50 border border-gray-200 rounded p-2 text-gray-700 overflow-y-auto"></textarea>
+      
       <div class="flex gap-2">
         <button id="btn-copy-json" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-medium py-2 rounded">
           複製 JSON
@@ -191,17 +291,14 @@
 
   <!-- Notification Toast -->
   <div id="toast" class="pointer-events-none fixed bottom-16 left-1/2 -translate-x-1/2 bg-gray-900/90 text-white text-xs px-3 py-1.5 rounded-full opacity-0 transition-opacity duration-300 z-50">
-    已複製到剪貼簿
+    已更新
   </div>
 
   <script>
     /**
-     * Common 300-500 character dictionary for tactile typing test
-     * Format: Keyed by exact Bopomofo sequence
-     * 5 tones: 無符號(1聲), ˊ(2聲), ˇ(3聲), ˋ(4聲), ˙(輕聲)
+     * Bopomofo Phonetic Dictionary for touch typing test
      */
     const PHONETIC_DICT = {
-      // 常用單注音 & 單字
       "ㄨㄛˇ": ["我"],
       "ㄋㄧˇ": ["你", "妳", "擬"],
       "ㄊㄚ": ["他", "她", "它"],
@@ -314,7 +411,6 @@
       "ㄧㄣ": ["音", "因", "陰"],
       "ㄕㄨ": ["書", "輸", "舒"],
       "ㄖㄨˋ": ["入"],
-      "ㄕㄡˇ": ["手"],
       "ㄐㄧ": ["機", "基", "積", "雞"],
       "ㄅㄛˊ": ["博", "伯", "薄"],
       "ㄎㄜ": ["科", "棵"],
@@ -333,7 +429,6 @@
       "ㄦˋ": ["二"]
     };
 
-    // Single-character lookup for fallback
     const BOPOMOFO_SINGLE_MAP = {
       'ㄅ': ['八', '吧', '把', '爸', '不', '包', '杯'],
       'ㄆ': ['朋', '旁', '跑', '片', '票', '平'],
@@ -374,11 +469,6 @@
       'ㄦ': ['兒', '二', '耳']
     };
 
-    // Input state
-    let composingBuffer = ""; // Current active Bopomofo syllable
-    let committedText = "";   // Finalized text output
-
-    // Tone characters
     const TONES = new Set(['ˊ', 'ˇ', 'ˋ', '˙']);
     const ALL_BOPOMOFO = new Set([
       'ㄅ','ㄆ','ㄇ','ㄈ','ㄉ','ㄊ','ㄋ','ㄌ','ㄍ','ㄎ','ㄏ',
@@ -387,23 +477,34 @@
       'ˊ','ˇ','ˋ','˙'
     ]);
 
-    // Pointer Telemetry State
-    const activePointers = new Map(); // pointerId -> initial details
-    const telemetryLogs = [];         // Array of log records
-
-    // iOS Bopomofo keyboard standard row distribution
+    // Keyboard Layout structure
     const KEYBOARD_ROWS = [
-      // Row 1: 11 keys
       ['ㄅ', 'ㄉ', 'ˇ', 'ˋ', 'ㄓ', 'ˊ', '˙', 'ㄚ', 'ㄞ', 'ㄢ', 'ㄦ'],
-      // Row 2: 10 keys
       ['ㄆ', 'ㄊ', 'ㄍ', 'ㄐ', 'ㄔ', 'ㄒ', 'ㄧ', 'ㄛ', 'ㄟ', 'ㄣ'],
-      // Row 3: 10 keys
       ['ㄇ', 'ㄋ', 'ㄎ', 'ㄑ', 'ㄕ', 'ㄘ', 'ㄨ', 'ㄜ', 'ㄠ', 'ㄤ'],
-      // Row 4: 9 keys + Backspace
       ['ㄈ', 'ㄌ', 'ㄏ', 'ㄒ', 'ㄖ', 'ㄙ', 'ㄩ', 'ㄝ', 'ㄡ', 'ㄥ', 'BACKSPACE'],
-      // Row 5: Action keys
       ['123', 'EMOJI', 'SPACE', 'RETURN']
     ];
+
+    // State Variables
+    let composingBuffer = "";
+    let committedText = "";
+
+    // Config options
+    const config = {
+      mode: 'magnify', // 'normal' | 'magnify'
+      centerRatio: 0.60,
+      magnifyCount: 4,
+      cancelDistance: 80
+    };
+
+    // Telemetry and Tracking
+    const telemetryLogs = [];
+    // Map: pointerId -> Tracking Session Object
+    const pointerSessions = new Map();
+
+    // Cache of keyboard key geometries for high-performance distance query
+    let keyMetrics = [];
 
     function buildKeyboard() {
       const grid = document.getElementById('keyboard-grid');
@@ -432,7 +533,6 @@
             btn.className = 'key-btn action-key flex-[2] flex items-center justify-center text-xs font-semibold text-gray-800 cursor-pointer';
             btn.textContent = '換行';
           } else {
-            // Standard Bopomofo key
             btn.className = 'key-btn bg-white flex-1 flex items-center justify-center text-[17px] font-normal text-gray-900 cursor-pointer';
             btn.textContent = key;
           }
@@ -440,18 +540,383 @@
           rowElement.appendChild(btn);
         });
       });
+
+      refreshKeyMetrics();
     }
 
-    function updateDisplay() {
-      document.getElementById('committed-text').textContent = committedText;
-      document.getElementById('composing-text').textContent = composingBuffer;
-      renderCandidates();
-      
-      // Auto-scroll output area to bottom
-      const outputMain = document.getElementById('output-container');
-      if (outputMain) {
-        outputMain.scrollTop = outputMain.scrollHeight;
+    function refreshKeyMetrics() {
+      const containerRect = document.getElementById('phone-container').getBoundingClientRect();
+      const keys = document.querySelectorAll('.key-btn');
+      keyMetrics = Array.from(keys).map((el) => {
+        const rect = el.getBoundingClientRect();
+        return {
+          key: el.dataset.key,
+          element: el,
+          rect: rect,
+          // Relative to phone container
+          left: rect.left - containerRect.left,
+          top: rect.top - containerRect.top,
+          width: rect.width,
+          height: rect.height,
+          centerX: rect.left - containerRect.left + rect.width / 2,
+          centerY: rect.top - containerRect.top + rect.height / 2,
+          clientCenterX: rect.left + rect.width / 2,
+          clientCenterY: rect.top + rect.height / 2
+        };
+      });
+    }
+
+    /**
+     * Find nearest keys and test if point is inside center zone
+     */
+    function findNearestKeys(clientX, clientY, count = 4) {
+      const scored = keyMetrics.map(item => {
+        const dx = clientX - item.clientCenterX;
+        const dy = clientY - item.clientCenterY;
+        const distSq = dx * dx + dy * dy;
+        return { ...item, distSq };
+      });
+
+      scored.sort((a, b) => a.distSq - b.distSq);
+      const nearest = scored[0];
+
+      // Check if touch is within center rectangle
+      const rect = nearest.rect;
+      const ratio = config.centerRatio;
+      const insetX = (rect.width * (1 - ratio)) / 2;
+      const insetY = (rect.height * (1 - ratio)) / 2;
+
+      const isInsideCenter = (
+        clientX >= rect.left + insetX &&
+        clientX <= rect.right - insetX &&
+        clientY >= rect.top + insetY &&
+        clientY <= rect.bottom - insetY
+      );
+
+      // Candidates for magnification strip: nearest N keys, arranged from left to right as in original layout
+      const selectedSubset = scored.slice(0, count);
+      // Sort candidates from left to right visually
+      selectedSubset.sort((a, b) => {
+        if (Math.abs(a.centerY - b.centerY) > 20) {
+          // Different rows: preserve top-down or relative left-to-right
+          return a.centerX - b.centerX;
+        }
+        return a.centerX - b.centerX;
+      });
+
+      return {
+        nearest,
+        isInsideCenter,
+        candidates: selectedSubset
+      };
+    }
+
+    function createMagnifierElement(pointerId, candidates, initialKey, startClientX, startClientY) {
+      const layer = document.getElementById('magnifier-layer');
+      const containerRect = document.getElementById('phone-container').getBoundingClientRect();
+
+      const strip = document.createElement('div');
+      strip.className = 'magnifier-strip';
+      strip.id = `magnifier-${pointerId}`;
+
+      // Cancel distance warning label
+      const cancelTip = document.createElement('div');
+      cancelTip.className = 'cancel-guide-tip';
+      cancelTip.textContent = '滑離過遠可取消';
+      strip.appendChild(cancelTip);
+
+      candidates.forEach(item => {
+        const keyBox = document.createElement('div');
+        keyBox.className = 'magnifier-key';
+        keyBox.dataset.key = item.key;
+        if (item.key === 'BACKSPACE') {
+          keyBox.innerHTML = '⌫';
+        } else if (item.key === 'SPACE') {
+          keyBox.textContent = '空白';
+          keyBox.style.fontSize = '14px';
+        } else {
+          keyBox.textContent = item.key;
+        }
+        if (item.key === initialKey) {
+          keyBox.classList.add('is-highlighted');
+        }
+        strip.appendChild(keyBox);
+      });
+
+      layer.appendChild(strip);
+      return strip;
+    }
+
+    function positionMagnifierStrip(pointerId, clientX, clientY, candidates, stripEl, isCancelled) {
+      const containerRect = document.getElementById('phone-container').getBoundingClientRect();
+      const stripWidth = stripEl.offsetWidth || (candidates.length * 54 + (candidates.length - 1) * 6 + 14);
+      const stripHeight = stripEl.offsetHeight || 68;
+
+      // Ensure strip is positioned comfortably ABOVE the finger (at least 60px above contact point)
+      let targetLeft = (clientX - containerRect.left) - (stripWidth / 2);
+      let targetTop = (clientY - containerRect.top) - stripHeight - 28;
+
+      // Keep inside container horizontally
+      const minLeft = 8;
+      const maxLeft = containerRect.width - stripWidth - 8;
+      if (targetLeft < minLeft) targetLeft = minLeft;
+      if (targetLeft > maxLeft) targetLeft = maxLeft;
+
+      // Prevent going above screen
+      if (targetTop < 8) targetTop = 8;
+
+      // Multi-touch overlap deconfliction (if two pointers are magnified simultaneously)
+      pointerSessions.forEach((session, otherId) => {
+        if (otherId !== pointerId && session.isMagnified && session.stripElement) {
+          const otherLeft = session.stripElement.offsetLeft;
+          const otherTop = session.stripElement.offsetTop;
+          // If bounding boxes overlap significantly, offset vertically or horizontally
+          const overlapX = Math.abs(targetLeft - otherLeft) < (stripWidth - 10);
+          const overlapY = Math.abs(targetTop - otherTop) < (stripHeight - 8);
+          if (overlapX && overlapY) {
+            // Offset current one higher
+            targetTop = Math.max(8, otherTop - stripHeight - 8);
+          }
+        }
+      });
+
+      stripEl.style.left = `${targetLeft}px`;
+      stripEl.style.top = `${targetTop}px`;
+
+      if (isCancelled) {
+        stripEl.classList.add('is-cancelled');
+      } else {
+        stripEl.classList.remove('is-cancelled');
       }
+    }
+
+    function updateMagnifierHighlight(stripEl, candidates, currentClientX) {
+      if (!stripEl) return candidates[0]?.key;
+      const keyBoxes = Array.from(stripEl.querySelectorAll('.magnifier-key'));
+      if (!keyBoxes.length) return candidates[0]?.key;
+
+      // Map current horizontal position to the candidate keys
+      let closestBox = keyBoxes[0];
+      let minDelta = Infinity;
+
+      keyBoxes.forEach(box => {
+        const boxRect = box.getBoundingClientRect();
+        const boxCenterX = boxRect.left + boxRect.width / 2;
+        const delta = Math.abs(currentClientX - boxCenterX);
+        if (delta < minDelta) {
+          minDelta = delta;
+          closestBox = box;
+        }
+      });
+
+      keyBoxes.forEach(b => b.classList.remove('is-highlighted'));
+      closestBox.classList.add('is-highlighted');
+
+      return closestBox.dataset.key;
+    }
+
+    function setupPointerHandling() {
+      const keyboardGrid = document.getElementById('keyboard-grid');
+
+      const preventDefaults = (e) => {
+        e.preventDefault();
+      };
+
+      keyboardGrid.addEventListener('touchstart', preventDefaults, { passive: false });
+      keyboardGrid.addEventListener('touchmove', preventDefaults, { passive: false });
+      keyboardGrid.addEventListener('touchend', preventDefaults, { passive: false });
+
+      // Pointer Down
+      keyboardGrid.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        refreshKeyMetrics();
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const now = Date.now();
+
+        const { nearest, isInsideCenter, candidates } = findNearestKeys(startX, startY, config.magnifyCount);
+        const shouldMagnify = (config.mode === 'magnify') && !isInsideCenter;
+
+        // Visual feedback on the physical key under touch
+        if (nearest && nearest.element) {
+          nearest.element.classList.add('is-pressed');
+        }
+
+        let stripEl = null;
+        if (shouldMagnify) {
+          stripEl = createMagnifierElement(e.pointerId, candidates, nearest.key, startX, startY);
+          positionMagnifierStrip(e.pointerId, startX, startY, candidates, stripEl, false);
+          updateMagnifierHighlight(stripEl, candidates, startX);
+        }
+
+        const session = {
+          pointerId: e.pointerId,
+          startTime: now,
+          startX: startX,
+          startY: startY,
+          currentX: startX,
+          currentY: startY,
+          nearestKey: nearest.key,
+          selectedKey: nearest.key,
+          isInsideCenter: isInsideCenter,
+          isMagnified: shouldMagnify,
+          stripElement: stripEl,
+          candidates: candidates.map(c => c.key),
+          candidatesFull: candidates,
+          hasSwiped: false,
+          isCancelled: false,
+          nearestElement: nearest.element
+        };
+
+        pointerSessions.set(e.pointerId, session);
+      }, { passive: false });
+
+      // Pointer Move
+      window.addEventListener('pointermove', (e) => {
+        if (!pointerSessions.has(e.pointerId)) return;
+        const session = pointerSessions.get(e.pointerId);
+
+        session.currentX = e.clientX;
+        session.currentY = e.clientY;
+
+        const moveDist = Math.hypot(session.currentX - session.startX, session.currentY - session.startY);
+        if (moveDist > 6) {
+          session.hasSwiped = true;
+        }
+
+        // Check vertical cancellation distance
+        const deltaY = Math.abs(session.currentY - session.startY);
+        session.isCancelled = (deltaY > config.cancelDistance);
+
+        if (session.isMagnified && session.stripElement) {
+          positionMagnifierStrip(e.pointerId, session.currentX, session.currentY, session.candidatesFull, session.stripElement, session.isCancelled);
+          if (!session.isCancelled) {
+            const chosenKey = updateMagnifierHighlight(session.stripElement, session.candidatesFull, session.currentX);
+            session.selectedKey = chosenKey;
+          }
+        }
+      }, { passive: false });
+
+      // Pointer Up / Cancel
+      const handlePointerEnd = (e, wasCancelledEvent = false) => {
+        if (!pointerSessions.has(e.pointerId)) return;
+        const session = pointerSessions.get(e.pointerId);
+        const duration = Date.now() - session.startTime;
+
+        if (session.nearestElement) {
+          session.nearestElement.classList.remove('is-pressed');
+        }
+
+        let finalKey = null;
+        const isCancelled = wasCancelledEvent || session.isCancelled;
+
+        if (!isCancelled) {
+          if (!session.isMagnified) {
+            // Normal center-hit mode: release confirms the tapped key
+            finalKey = session.nearestKey;
+          } else {
+            // Magnified mode: release confirms currently highlighted key
+            finalKey = session.selectedKey;
+          }
+        }
+
+        // Clean up visual magnifier
+        if (session.stripElement && session.stripElement.parentNode) {
+          session.stripElement.remove();
+        }
+
+        // Record telemetry log
+        const logRecord = {
+          id: telemetryLogs.length + 1,
+          timestamp: session.startTime,
+          timeISO: new Date(session.startTime).toISOString(),
+          mode: config.mode,
+          durationMs: duration,
+          startPoint: { x: Math.round(session.startX), y: Math.round(session.startY) },
+          nearestKey: session.nearestKey,
+          isInsideCenter: session.isInsideCenter,
+          enteredMagnify: session.isMagnified,
+          magnifyList: session.isMagnified ? session.candidates : [],
+          finalKey: finalKey,
+          hasSwiped: session.hasSwiped,
+          switchedKey: session.isMagnified && !isCancelled && (finalKey !== session.nearestKey),
+          isCancelled: isCancelled
+        };
+
+        telemetryLogs.push(logRecord);
+
+        // Execute key input if not cancelled
+        if (finalKey) {
+          handleKeyPress(finalKey);
+        }
+
+        pointerSessions.delete(e.pointerId);
+      };
+
+      window.addEventListener('pointerup', (e) => handlePointerEnd(e, false));
+      window.addEventListener('pointercancel', (e) => handlePointerEnd(e, true));
+    }
+
+    function handleKeyPress(key) {
+      if (ALL_BOPOMOFO.has(key)) {
+        composingBuffer += key;
+      } else if (key === 'SPACE') {
+        if (composingBuffer.length > 0) {
+          const candidates = getCandidateList(composingBuffer);
+          selectCandidate(candidates[0]);
+        } else {
+          committedText += ' ';
+        }
+      } else if (key === 'BACKSPACE') {
+        if (composingBuffer.length > 0) {
+          composingBuffer = composingBuffer.slice(0, -1);
+        } else if (committedText.length > 0) {
+          committedText = committedText.slice(0, -1);
+        }
+      } else if (key === 'RETURN') {
+        if (composingBuffer.length > 0) {
+          committedText += composingBuffer;
+          composingBuffer = "";
+        } else {
+          committedText += "\n";
+        }
+      } else if (key === '123') {
+        showToast('切換符號模式 (原型測試)');
+      } else if (key === 'EMOJI') {
+        showToast('表情符號 (原型測試)');
+      }
+
+      updateDisplay();
+    }
+
+    function getCandidateList(buffer) {
+      if (!buffer) return [];
+      let matches = [];
+
+      if (PHONETIC_DICT[buffer]) {
+        matches = [...PHONETIC_DICT[buffer]];
+      }
+
+      // Check tone 1
+      const hasTone = Array.from(buffer).some(c => TONES.has(c));
+      if (!hasTone && PHONETIC_DICT[buffer] && !matches.includes(PHONETIC_DICT[buffer][0])) {
+        matches.push(...PHONETIC_DICT[buffer]);
+      }
+
+      // Fallback single character
+      const firstChar = buffer[0];
+      if (BOPOMOFO_SINGLE_MAP[firstChar]) {
+        BOPOMOFO_SINGLE_MAP[firstChar].forEach(word => {
+          if (!matches.includes(word)) matches.push(word);
+        });
+      }
+
+      if (matches.length === 0) {
+        matches.push(buffer);
+      }
+
+      return matches;
     }
 
     function renderCandidates() {
@@ -463,42 +928,13 @@
         return;
       }
 
-      let matches = [];
+      const matches = getCandidateList(composingBuffer);
 
-      // Exact match in dictionary
-      if (PHONETIC_DICT[composingBuffer]) {
-        matches = [...PHONETIC_DICT[composingBuffer]];
-      }
-
-      // Check tone 1 (if no tone entered yet)
-      const hasTone = Array.from(composingBuffer).some(c => TONES.has(c));
-      if (!hasTone) {
-        if (PHONETIC_DICT[composingBuffer] && !matches.includes(PHONETIC_DICT[composingBuffer][0])) {
-          matches.push(...PHONETIC_DICT[composingBuffer]);
-        }
-      }
-
-      // Prefix / Fallback: check first character
-      const firstChar = composingBuffer[0];
-      if (BOPOMOFO_SINGLE_MAP[firstChar]) {
-        BOPOMOFO_SINGLE_MAP[firstChar].forEach(word => {
-          if (!matches.includes(word)) matches.push(word);
-        });
-      }
-
-      // If still empty, supply the raw Bopomofo buffer as option
-      if (matches.length === 0) {
-        matches.push(composingBuffer);
-      }
-
-      // Render candidates buttons
-      matches.slice(0, 12).forEach((word, index) => {
+      matches.slice(0, 14).forEach((word) => {
         const item = document.createElement('button');
         item.className = 'candidate-item px-3 py-1 bg-white hover:bg-gray-100 active:bg-gray-200 rounded text-[16px] text-gray-900 font-medium shrink-0 shadow-sm border border-gray-200 transition';
         item.textContent = word;
-        item.dataset.index = index;
         
-        // Touch selection
         item.addEventListener('pointerdown', (e) => {
           e.preventDefault();
           selectCandidate(word);
@@ -514,159 +950,113 @@
       updateDisplay();
     }
 
-    function handleKeyPress(key) {
-      if (ALL_BOPOMOFO.has(key)) {
-        if (TONES.has(key)) {
-          // If tone is pressed without base, still append or tone-mark
-          composingBuffer += key;
-          // When a tone is entered, check if an exact syllable can auto-resolve
-          if (PHONETIC_DICT[composingBuffer] && PHONETIC_DICT[composingBuffer].length > 0) {
-            // First candidate automatically ready or stay in candidate bar for picking
-            // In iOS, entering tone immediately narrows candidates; first space or touch commits
-          }
-        } else {
-          composingBuffer += key;
-        }
-      } else if (key === 'SPACE') {
-        // Spacebar acts as tone 1 or commits first candidate
-        if (composingBuffer.length > 0) {
-          // Try tone 1 match
-          const candidates = PHONETIC_DICT[composingBuffer] || BOPOMOFO_SINGLE_MAP[composingBuffer[0]] || [composingBuffer];
-          selectCandidate(candidates[0]);
-        } else {
-          // Normal space character
-          committedText += ' ';
-        }
-      } else if (key === 'BACKSPACE') {
-        if (composingBuffer.length > 0) {
-          // Delete last Bopomofo symbol
-          composingBuffer = composingBuffer.slice(0, -1);
-        } else if (committedText.length > 0) {
-          // Delete last committed character
-          committedText = committedText.slice(0, -1);
-        }
-      } else if (key === 'RETURN') {
-        if (composingBuffer.length > 0) {
-          // Commit raw symbols without converting
-          committedText += composingBuffer;
-          composingBuffer = "";
-        } else {
-          committedText += "\n";
-        }
-      } else if (key === '123') {
-        // Toggle numeric feedback
-        showToast('切換符號模式 (原型測試)');
-      } else if (key === 'EMOJI') {
-        showToast('表情符號 (原型測試)');
-      }
-
-      updateDisplay();
-    }
-
-    function logKeyTouch(pointerEvent, keyElement, keyName) {
-      const rect = keyElement.getBoundingClientRect();
-      const relativeX = Math.round(pointerEvent.clientX - rect.left);
-      const relativeY = Math.round(pointerEvent.clientY - rect.top);
-
-      const record = {
-        id: telemetryLogs.length + 1,
-        timestamp: Date.now(),
-        timeISO: new Date().toISOString(),
-        pointerId: pointerEvent.pointerId,
-        pointerType: pointerEvent.pointerType,
-        key: keyName,
-        point: {
-          clientX: Math.round(pointerEvent.clientX),
-          clientY: Math.round(pointerEvent.clientY)
-        },
-        keyRect: {
-          x: Math.round(rect.x),
-          y: Math.round(rect.y),
-          width: Math.round(rect.width),
-          height: Math.round(rect.height)
-        },
-        offsetInKey: {
-          x: relativeX,
-          y: relativeY
-        }
-      };
-
-      telemetryLogs.push(record);
-      document.getElementById('log-count').textContent = `${telemetryLogs.length} 點擊`;
-    }
-
-    function setupPointerHandling() {
-      const keyboardGrid = document.getElementById('keyboard-grid');
-
-      // Prevent system touches, scrolling and default gestures
-      const preventDefaults = (e) => {
-        e.preventDefault();
-      };
+    function updateDisplay() {
+      document.getElementById('committed-text').textContent = committedText;
+      document.getElementById('composing-text').textContent = composingBuffer;
+      renderCandidates();
       
-      keyboardGrid.addEventListener('touchstart', preventDefaults, { passive: false });
-      keyboardGrid.addEventListener('touchmove', preventDefaults, { passive: false });
-      keyboardGrid.addEventListener('touchend', preventDefaults, { passive: false });
-
-      // Pointer Down: Visual feedback & trigger typing immediately for lowest latency
-      keyboardGrid.addEventListener('pointerdown', (e) => {
-        e.preventDefault();
-        const keyBtn = e.target.closest('.key-btn');
-        if (!keyBtn) return;
-
-        const key = keyBtn.dataset.key;
-        activePointers.set(e.pointerId, {
-          targetBtn: keyBtn,
-          startX: e.clientX,
-          startY: e.clientY,
-          key: key
-        });
-
-        // Add press visual style
-        keyBtn.classList.add('is-pressed');
-
-        // Log touch telemetry
-        logKeyTouch(e, keyBtn, key);
-
-        // Execute input logic
-        handleKeyPress(key);
-      }, { passive: false });
-
-      // Pointer Up: Release visual feedback
-      const handlePointerUp = (e) => {
-        if (activePointers.has(e.pointerId)) {
-          const info = activePointers.get(e.pointerId);
-          if (info.targetBtn) {
-            info.targetBtn.classList.remove('is-pressed');
-          }
-          activePointers.delete(e.pointerId);
-        }
-      };
-
-      window.addEventListener('pointerup', handlePointerUp);
-      window.addEventListener('pointercancel', handlePointerUp);
+      // Auto scroll output area to bottom
+      const outputMain = document.getElementById('output-container');
+      if (outputMain) {
+        outputMain.scrollTop = outputMain.scrollHeight;
+      }
     }
 
     function setupControls() {
-      // Clear button
+      // Clear
       document.getElementById('btn-clear').addEventListener('click', () => {
         committedText = "";
         composingBuffer = "";
         updateDisplay();
       });
 
-      // Export Modal
+      // Settings Drawer toggle
+      const settingsDrawer = document.getElementById('settings-drawer');
+      document.getElementById('btn-toggle-settings').addEventListener('click', () => {
+        settingsDrawer.classList.toggle('hidden');
+        setTimeout(refreshKeyMetrics, 100);
+      });
+
+      // Mode switch buttons (A/B testing)
+      const normalBtn = document.getElementById('mode-normal-btn');
+      const magnifyBtn = document.getElementById('mode-magnify-btn');
+      const modeBadge = document.getElementById('header-mode-badge');
+
+      function setMode(mode) {
+        config.mode = mode;
+        if (mode === 'magnify') {
+          magnifyBtn.className = 'text-[11px] px-2.5 py-1 rounded bg-white text-blue-600 shadow-sm font-semibold';
+          normalBtn.className = 'text-[11px] px-2.5 py-1 rounded text-gray-600 font-medium';
+          modeBadge.textContent = '放大模式';
+          modeBadge.className = 'text-[10px] bg-blue-50 text-blue-700 border border-blue-200 font-medium px-1.5 py-0.5 rounded';
+        } else {
+          normalBtn.className = 'text-[11px] px-2.5 py-1 rounded bg-white text-blue-600 shadow-sm font-semibold';
+          magnifyBtn.className = 'text-[11px] px-2.5 py-1 rounded text-gray-600 font-medium';
+          modeBadge.textContent = '一般模式';
+          modeBadge.className = 'text-[10px] bg-gray-100 text-gray-600 border border-gray-200 font-medium px-1.5 py-0.5 rounded';
+        }
+      }
+
+      normalBtn.addEventListener('click', () => setMode('normal'));
+      magnifyBtn.addEventListener('click', () => setMode('magnify'));
+
+      // Sliders
+      const centerRange = document.getElementById('center-ratio-range');
+      const centerVal = document.getElementById('center-ratio-val');
+      centerRange.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value, 10);
+        config.centerRatio = val / 100;
+        centerVal.textContent = `${val}%`;
+      });
+
+      const countRange = document.getElementById('magnify-count-range');
+      const countVal = document.getElementById('magnify-count-val');
+      countRange.addEventListener('input', (e) => {
+        config.magnifyCount = parseInt(e.target.value, 10);
+        countVal.textContent = `${config.magnifyCount} 鍵`;
+      });
+
+      const cancelRange = document.getElementById('cancel-distance-range');
+      const cancelVal = document.getElementById('cancel-distance-val');
+      cancelRange.addEventListener('input', (e) => {
+        config.cancelDistance = parseInt(e.target.value, 10);
+        cancelVal.textContent = `${config.cancelDistance}px`;
+      });
+
+      // Export & Analytics Modal
       const modal = document.getElementById('export-modal');
       const jsonPreview = document.getElementById('json-preview');
 
       document.getElementById('btn-export').addEventListener('click', () => {
+        // Compute Statistics
+        const total = telemetryLogs.length;
+        const magnifiedCount = telemetryLogs.filter(l => l.enteredMagnify).length;
+        const switchedCount = telemetryLogs.filter(l => l.switchedKey).length;
+        const cancelledCount = telemetryLogs.filter(l => l.isCancelled).length;
+
+        const magnifiedRatio = total ? Math.round((magnifiedCount / total) * 100) : 0;
+        const switchedRatio = total ? Math.round((switchedCount / total) * 100) : 0;
+        const cancelledRatio = total ? Math.round((cancelledCount / total) * 100) : 0;
+
+        document.getElementById('stat-total').textContent = `${total} 次`;
+        document.getElementById('stat-magnified-ratio').textContent = `${magnifiedRatio}% (${magnifiedCount})`;
+        document.getElementById('stat-switched-ratio').textContent = `${switchedRatio}% (${switchedCount})`;
+        document.getElementById('stat-cancelled-ratio').textContent = `${cancelledRatio}% (${cancelledCount})`;
+
         const payload = {
+          summary: {
+            totalTouches: total,
+            magnifiedRatio: `${magnifiedRatio}%`,
+            switchedRatio: `${switchedRatio}%`,
+            cancelledRatio: `${cancelledRatio}%`,
+            activeConfig: { ...config }
+          },
           device: {
             userAgent: navigator.userAgent,
-            screenWidth: window.innerWidth,
-            screenHeight: window.innerHeight,
+            width: window.innerWidth,
+            height: window.innerHeight,
             devicePixelRatio: window.devicePixelRatio
           },
-          totalClicks: telemetryLogs.length,
           logs: telemetryLogs
         };
 
@@ -678,23 +1068,22 @@
         modal.classList.add('hidden');
       });
 
-      // Close modal on click outside
       modal.addEventListener('click', (e) => {
         if (e.target === modal) modal.classList.add('hidden');
       });
 
-      // Copy JSON button (uses document.execCommand fallback for iframe safety)
+      // Copy JSON
       document.getElementById('btn-copy-json').addEventListener('click', () => {
         jsonPreview.select();
         try {
           document.execCommand('copy');
           showToast('JSON 已複製到剪貼簿！');
         } catch (err) {
-          showToast('複製失敗，請手動全選複製');
+          showToast('複製失敗，請手動複製');
         }
       });
 
-      // Download JSON button
+      // Download JSON
       document.getElementById('btn-download-json').addEventListener('click', () => {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(jsonPreview.value);
         const downloadAnchor = document.createElement('a');
@@ -704,6 +1093,13 @@
         downloadAnchor.click();
         downloadAnchor.remove();
         showToast('已開始下載 JSON 記錄檔');
+      });
+
+      window.addEventListener('resize', () => {
+        refreshKeyMetrics();
+      });
+      window.addEventListener('orientationchange', () => {
+        setTimeout(refreshKeyMetrics, 200);
       });
     }
 
